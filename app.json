@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "DhikrullahApp",
-    "slug": "DhikrullahApp",
+    "name": "Dhikrullah",
+    "slug": "dhikrullah",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
