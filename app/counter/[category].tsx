@@ -12,10 +12,10 @@ import {
   Plus,
 } from 'lucide-react-native';
 import { CategoryId } from '@/types';
-import { getDhikrsFor } from '@/data/dhikrs';
-import { CATEGORIES } from '@/data/categories';
+import { useDhikrContent } from '@/context/CounterContext';
 import { useCounter } from '@/hooks/useCounter';
 import { useFavourites } from '@/context/FavouritesContext';
+import { resolveAudio } from '@/db/audioMap';
 import { DhikrPager } from '@/components/DhikrPager';
 import { GradientBackground } from '@/components/GradientBackground';
 import { GlassCard } from '@/components/GlassCard';
@@ -39,8 +39,9 @@ export default function CounterScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const categoryId = category as CategoryId;
-  const meta = CATEGORIES.find(c => c.id === categoryId);
-  const dhikrs = meta ? getDhikrsFor(categoryId) : [];
+  const { categories, dhikrsByCategory } = useDhikrContent();
+  const meta = categories.find((c) => c.id === categoryId);
+  const dhikrs = dhikrsByCategory[categoryId] ?? [];
   const {
     hydrated,
     state,
@@ -71,20 +72,20 @@ export default function CounterScreen() {
     };
   }, [dhikrs, state]);
 
-  if (!meta) {
-    return (
-      <View style={styles.fallback}>
-        <GradientBackground />
-        <Text style={{ color: TEXT_MID }}>Unknown category: {String(category)}</Text>
-      </View>
-    );
-  }
-
   if (!hydrated) {
     return (
       <View style={styles.fallback}>
         <GradientBackground />
         <Text style={{ color: TEXT_MID }}>Loading…</Text>
+      </View>
+    );
+  }
+
+  if (!meta) {
+    return (
+      <View style={styles.fallback}>
+        <GradientBackground />
+        <Text style={{ color: TEXT_MID }}>Unknown category: {String(category)}</Text>
       </View>
     );
   }
@@ -154,7 +155,10 @@ export default function CounterScreen() {
                     <Info size={18} color={ACCENT} strokeWidth={2} />
                   </Pressable>
                   <View style={styles.cornerRight}>
-                    <AudioButton source={currentDhikr.audio} dhikrId={currentDhikr.id} />
+                    <AudioButton
+                      source={resolveAudio(currentDhikr.audioFilename)}
+                      dhikrId={currentDhikr.id}
+                    />
                   </View>
 
                   <CountDisplay count={count} target={currentDhikr.target} />
@@ -211,7 +215,9 @@ export default function CounterScreen() {
 
       <InfoModal
         visible={infoOpen}
-        reference={currentDhikr?.reference ?? ''}
+        description={currentDhikr?.description ?? null}
+        reference={currentDhikr?.reference ?? null}
+        grade={currentDhikr?.grade ?? null}
         onClose={() => setInfoOpen(false)}
       />
     </View>
