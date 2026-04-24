@@ -1,5 +1,14 @@
 import { CategoryId, Dhikr } from '@/types';
 
+const PLACEHOLDER_REFS = [
+  'Narrated by —, Book —, Hadith —',
+  'Reported in —, Chapter —, Number —',
+  'Source: — (To be confirmed)',
+  'Sahih Collection —, Hadith —',
+  'Authenticated by —, Volume —, Page —',
+];
+const ref = (i: number) => PLACEHOLDER_REFS[i % PLACEHOLDER_REFS.length];
+
 export const DHIKRS: Record<CategoryId, Dhikr[]> = {
   all_day: [
     {
@@ -8,6 +17,8 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'SubhanAllah',
       translation: 'Glory be to Allah',
       target: 100,
+      reference: ref(0),
+      audio: require('@/assets/audio/all_day-01.m4a'),
     },
     {
       id: 'all_day-02',
@@ -15,6 +26,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Alhamdulillah',
       translation: 'All praise is due to Allah',
       target: 100,
+      reference: ref(1),
     },
     {
       id: 'all_day-03',
@@ -22,6 +34,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'La ilaha illa Allah',
       translation: 'There is no god but Allah',
       target: 100,
+      reference: ref(2),
     },
     {
       id: 'all_day-04',
@@ -29,6 +42,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Allahu Akbar',
       translation: 'Allah is the Greatest',
       target: 100,
+      reference: ref(3),
     },
     {
       id: 'all_day-05',
@@ -36,6 +50,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Astaghfirullah',
       translation: 'I seek forgiveness from Allah',
       target: 100,
+      reference: ref(4),
     },
   ],
   waking_up: [
@@ -45,6 +60,8 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Alhamdulillahi alladhi ahyana ba’da ma amatana wa ilayhi an-nushoor',
       translation: 'Praise be to Allah who gave us life after taking it, and to Him is the resurrection',
       target: 1,
+      reference: ref(0),
+      audio: require('@/assets/audio/waking_up-01.m4a'),
     },
     {
       id: 'waking_up-02',
@@ -52,6 +69,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'La ilaha illa Allahu wahdahu la sharika lah',
       translation: 'There is no god but Allah, alone, without partner',
       target: 1,
+      reference: ref(1),
     },
     {
       id: 'waking_up-03',
@@ -59,6 +77,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'SubhanAllahi wa bihamdih',
       translation: 'Glory be to Allah and praise Him',
       target: 3,
+      reference: ref(2),
     },
   ],
   morning: [
@@ -68,6 +87,8 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'SubhanAllahi wa bihamdih',
       translation: 'Glory be to Allah and praise Him',
       target: 100,
+      reference: ref(0),
+      audio: require('@/assets/audio/morning-01.m4a'),
     },
     {
       id: 'morning-02',
@@ -75,6 +96,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'La ilaha illa Allahu wahdahu la sharika lah',
       translation: 'There is no god but Allah, alone, without partner',
       target: 10,
+      reference: ref(1),
     },
     {
       id: 'morning-03',
@@ -82,6 +104,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Asbahna wa asbahal-mulku lillah',
       translation: 'We have reached the morning and the dominion belongs to Allah',
       target: 1,
+      reference: ref(2),
     },
   ],
   evening: [
@@ -91,6 +114,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Amsayna wa amsal-mulku lillah',
       translation: 'We have reached the evening and the dominion belongs to Allah',
       target: 1,
+      reference: ref(0),
     },
     {
       id: 'evening-02',
@@ -98,6 +122,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Allahumma bika amsayna',
       translation: 'O Allah, by You we have reached the evening',
       target: 3,
+      reference: ref(1),
     },
     {
       id: 'evening-03',
@@ -105,6 +130,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'SubhanAllahi wa bihamdih',
       translation: 'Glory be to Allah and praise Him',
       target: 100,
+      reference: ref(2),
     },
   ],
   night: [
@@ -114,6 +140,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Bismika Allahumma amutu wa ahya',
       translation: 'In Your name O Allah, I die and I live',
       target: 1,
+      reference: ref(0),
     },
     {
       id: 'night-02',
@@ -121,6 +148,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'SubhanAllah',
       translation: 'Glory be to Allah',
       target: 33,
+      reference: ref(1),
     },
     {
       id: 'night-03',
@@ -128,6 +156,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Alhamdulillah',
       translation: 'All praise is due to Allah',
       target: 33,
+      reference: ref(2),
     },
   ],
   fajr: [
@@ -137,6 +166,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'SubhanAllah',
       translation: 'Glory be to Allah',
       target: 33,
+      reference: ref(0),
     },
     {
       id: 'fajr-02',
@@ -144,6 +174,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Alhamdulillah',
       translation: 'All praise is due to Allah',
       target: 33,
+      reference: ref(1),
     },
     {
       id: 'fajr-03',
@@ -151,6 +182,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Allahu Akbar',
       translation: 'Allah is the Greatest',
       target: 34,
+      reference: ref(2),
     },
   ],
   dhuhr: [
@@ -160,6 +192,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'SubhanAllah',
       translation: 'Glory be to Allah',
       target: 33,
+      reference: ref(0),
     },
     {
       id: 'dhuhr-02',
@@ -167,6 +200,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Alhamdulillah',
       translation: 'All praise is due to Allah',
       target: 33,
+      reference: ref(1),
     },
     {
       id: 'dhuhr-03',
@@ -174,6 +208,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Allahu Akbar',
       translation: 'Allah is the Greatest',
       target: 34,
+      reference: ref(2),
     },
   ],
   asr: [
@@ -183,6 +218,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'SubhanAllah',
       translation: 'Glory be to Allah',
       target: 33,
+      reference: ref(0),
     },
     {
       id: 'asr-02',
@@ -190,6 +226,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Alhamdulillah',
       translation: 'All praise is due to Allah',
       target: 33,
+      reference: ref(1),
     },
     {
       id: 'asr-03',
@@ -197,6 +234,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Allahu Akbar',
       translation: 'Allah is the Greatest',
       target: 34,
+      reference: ref(2),
     },
   ],
   maghrib: [
@@ -206,6 +244,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'SubhanAllah',
       translation: 'Glory be to Allah',
       target: 33,
+      reference: ref(0),
     },
     {
       id: 'maghrib-02',
@@ -213,6 +252,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Alhamdulillah',
       translation: 'All praise is due to Allah',
       target: 33,
+      reference: ref(1),
     },
     {
       id: 'maghrib-03',
@@ -220,6 +260,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Allahu Akbar',
       translation: 'Allah is the Greatest',
       target: 34,
+      reference: ref(2),
     },
   ],
   isha: [
@@ -229,6 +270,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'SubhanAllah',
       translation: 'Glory be to Allah',
       target: 33,
+      reference: ref(0),
     },
     {
       id: 'isha-02',
@@ -236,6 +278,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Alhamdulillah',
       translation: 'All praise is due to Allah',
       target: 33,
+      reference: ref(1),
     },
     {
       id: 'isha-03',
@@ -243,6 +286,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Allahu Akbar',
       translation: 'Allah is the Greatest',
       target: 34,
+      reference: ref(2),
     },
   ],
   before_bed: [
@@ -252,6 +296,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Bismika Allahumma amutu wa ahya',
       translation: 'In Your name O Allah, I die and I live',
       target: 1,
+      reference: ref(0),
     },
     {
       id: 'before_bed-02',
@@ -259,6 +304,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'SubhanAllah',
       translation: 'Glory be to Allah',
       target: 33,
+      reference: ref(1),
     },
     {
       id: 'before_bed-03',
@@ -266,6 +312,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Alhamdulillah',
       translation: 'All praise is due to Allah',
       target: 33,
+      reference: ref(2),
     },
     {
       id: 'before_bed-04',
@@ -273,6 +320,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Allahu Akbar',
       translation: 'Allah is the Greatest',
       target: 34,
+      reference: ref(3),
     },
     {
       id: 'before_bed-05',
@@ -280,6 +328,7 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Ayat al-Kursi',
       translation: 'The Verse of the Throne (Al-Baqarah 2:255)',
       target: 1,
+      reference: ref(4),
     },
   ],
 };

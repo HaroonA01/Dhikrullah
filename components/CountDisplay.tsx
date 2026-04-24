@@ -1,0 +1,67 @@
+import { useEffect } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { ACCENT, TEXT_DIM } from '@/constants/theme';
+
+interface Props {
+  count: number;
+  target: number;
+}
+
+export function CountDisplay({ count, target }: Props) {
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    scale.value = withSequence(
+      withTiming(1.15, { duration: 90 }),
+      withSpring(1, { damping: 8, stiffness: 180 }),
+    );
+  }, [count, scale]);
+
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  return (
+    <View style={styles.wrap}>
+      <Animated.View style={animStyle}>
+        <Text style={styles.row}>
+          <Text style={styles.count}>{count}</Text>
+          <Text style={styles.sep}> / </Text>
+          <Text style={styles.target}>{target}</Text>
+        </Text>
+      </Animated.View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  row: {
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  count: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: ACCENT,
+  },
+  sep: {
+    fontSize: 18,
+    color: TEXT_DIM,
+    fontWeight: '400',
+  },
+  target: {
+    fontSize: 18,
+    color: TEXT_DIM,
+    fontWeight: '500',
+  },
+});

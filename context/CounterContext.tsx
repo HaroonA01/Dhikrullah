@@ -6,12 +6,16 @@ import { multiGetJSON, setJSON, storageKey } from '@/lib/storage';
 import { hapticsLight, hapticsStrong } from '@/lib/haptics';
 
 type AllState = Record<CategoryId, CounterState>;
+type TickMap = Partial<Record<CategoryId, number>>;
 
 interface ContextValue {
   hydrated: boolean;
   states: AllState;
+  confettiTicks: TickMap;
   incrementCurrent: (id: CategoryId) => void;
+  decrementCurrent: (id: CategoryId) => void;
   nextDhikr: (id: CategoryId) => void;
+  prevDhikr: (id: CategoryId) => void;
   resetAll: (id: CategoryId) => void;
 }
 
@@ -31,10 +35,14 @@ const buildInitial = (): AllState => {
 
 const CounterContext = createContext<ContextValue | null>(null);
 
+const ADVANCE_DELAY_MS = 3000;
+
 export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [states, setStates] = useState<AllState>(buildInitial);
+  const [confettiTicks, setConfettiTicks] = useState<TickMap>({});
   const [hydrated, setHydrated] = useState(false);
   const writeTimers = useRef<Partial<Record<CategoryId, ReturnType<typeof setTimeout>>>>({});
+  const advanceTimers = useRef<Partial<Record<CategoryId, ReturnType<typeof setTimeout>>>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -67,6 +75,16 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, []);
 
+  useEffect(() => {
+    const timers = advanceTimers.current;
+    return () => {
+      for (const key of Object.keys(timers)) {
+        const t = timers[key as CategoryId];
+        if (t) clearTimeout(t);
+      }
+    };
+  }, []);
+
   const scheduleWrite = useCallback((id: CategoryId, state: CounterState) => {
     const existing = writeTimers.current[id];
     if (existing) clearTimeout(existing);
@@ -75,6 +93,32 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, 150);
   }, []);
 
+  const bumpConfetti = useCallback((id: CategoryId) => {
+    setConfettiTicks(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
+  }, []);
+
+  const scheduleAdvance = useCallback((id: CategoryId) => {
+    const existing = advanceTimers.current[id];
+    if (existing) clearTimeout(existing);
+    advanceTimers.current[id] = setTimeout(() => {
+      setStates(prev => {
+        const list = DHIKRS[id];
+        const cur = prev[id];
+        const dhikr = list[cur.currentDhikrIndex];
+        if (!dhikr) return prev;
+        const curCount = cur.counts[dhikr.id] ?? 0;
+        if (curCount < dhikr.target) return prev;
+        if (cur.currentDhikrIndex + 1 >= list.length) return prev;
+        const nextIdx = cur.currentDhikrIndex + 1;
+        const nextD = list[nextIdx];
+        const counts = { ...cur.counts, [nextD.id]: 0 };
+        const nextState: CounterState = { currentDhikrIndex: nextIdx, counts };
+        scheduleWrite(id, nextState);
+        return { ...prev, [id]: nextState };
+      });
+    }, ADVANCE_DELAY_MS);
+  }, [scheduleWrite]);
+
   const incrementCurrent = useCallback((id: CategoryId) => {
     setStates(prev => {
       const list = DHIKRS[id];
@@ -82,30 +126,54 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const dhikr = list[cur.currentDhikrIndex];
       if (!dhikr) return prev;
       const currentCount = cur.counts[dhikr.id] ?? 0;
+      if (currentCount >= dhikr.target) return prev;
       const newCount = currentCount + 1;
       const counts = { ...cur.counts };
-      let nextIdx = cur.currentDhikrIndex;
 
       if (newCount >= dhikr.target) {
         counts[dhikr.id] = dhikr.target;
         hapticsStrong();
+        bumpConfetti(id);
         if (cur.currentDhikrIndex + 1 < list.length) {
-          nextIdx = cur.currentDhikrIndex + 1;
-          const nextD = list[nextIdx];
-          counts[nextD.id] = 0;
+          scheduleAdvance(id);
         }
       } else {
         counts[dhikr.id] = newCount;
         hapticsLight();
       }
 
-      const nextState: CounterState = { currentDhikrIndex: nextIdx, counts };
+      const nextState: CounterState = { currentDhikrIndex: cur.currentDhikrIndex, counts };
+      scheduleWrite(id, nextState);
+      return { ...prev, [id]: nextState };
+    });
+  }, [scheduleWrite, bumpConfetti, scheduleAdvance]);
+
+  const decrementCurrent = useCallback((id: CategoryId) => {
+    setStates(prev => {
+      const list = DHIKRS[id];
+      const cur = prev[id];
+      const dhikr = list[cur.currentDhikrIndex];
+      if (!dhikr) return prev;
+      const currentCount = cur.counts[dhikr.id] ?? 0;
+      if (currentCount <= 0) return prev;
+      const counts = { ...cur.counts, [dhikr.id]: currentCount - 1 };
+      hapticsLight();
+      const nextState: CounterState = { ...cur, counts };
       scheduleWrite(id, nextState);
       return { ...prev, [id]: nextState };
     });
   }, [scheduleWrite]);
 
+  const clearAdvance = useCallback((id: CategoryId) => {
+    const t = advanceTimers.current[id];
+    if (t) {
+      clearTimeout(t);
+      advanceTimers.current[id] = undefined;
+    }
+  }, []);
+
   const nextDhikr = useCallback((id: CategoryId) => {
+    clearAdvance(id);
     setStates(prev => {
       const list = DHIKRS[id];
       const cur = prev[id];
@@ -117,18 +185,44 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
       scheduleWrite(id, nextState);
       return { ...prev, [id]: nextState };
     });
-  }, [scheduleWrite]);
+  }, [scheduleWrite, clearAdvance]);
+
+  const prevDhikr = useCallback((id: CategoryId) => {
+    clearAdvance(id);
+    setStates(prev => {
+      const cur = prev[id];
+      if (cur.currentDhikrIndex <= 0) return prev;
+      const nextState: CounterState = {
+        ...cur,
+        currentDhikrIndex: cur.currentDhikrIndex - 1,
+      };
+      scheduleWrite(id, nextState);
+      return { ...prev, [id]: nextState };
+    });
+  }, [scheduleWrite, clearAdvance]);
 
   const resetAll = useCallback((id: CategoryId) => {
+    clearAdvance(id);
     setStates(prev => {
       const next = emptyState(id);
       scheduleWrite(id, next);
       return { ...prev, [id]: next };
     });
-  }, [scheduleWrite]);
+  }, [scheduleWrite, clearAdvance]);
 
   return (
-    <CounterContext.Provider value={{ hydrated, states, incrementCurrent, nextDhikr, resetAll }}>
+    <CounterContext.Provider
+      value={{
+        hydrated,
+        states,
+        confettiTicks,
+        incrementCurrent,
+        decrementCurrent,
+        nextDhikr,
+        prevDhikr,
+        resetAll,
+      }}
+    >
       {children}
     </CounterContext.Provider>
   );
