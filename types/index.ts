@@ -1,4 +1,6 @@
 export type CategoryId =
+  | 'all_day'
+  | 'waking_up'
   | 'morning'
   | 'evening'
   | 'night'
@@ -6,7 +8,8 @@ export type CategoryId =
   | 'dhuhr'
   | 'asr'
   | 'maghrib'
-  | 'isha';
+  | 'isha'
+  | 'before_bed';
 
 export interface Category {
   id: CategoryId;

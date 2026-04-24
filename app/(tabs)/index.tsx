@@ -8,53 +8,23 @@ import Animated, {
   withSpring,
   interpolate,
 } from 'react-native-reanimated';
-import { SharedValue } from 'react-native-reanimated';
 import { Gesture, GestureDetector, NativeViewGestureHandler } from 'react-native-gesture-handler';
+import { LinearGradient } from 'expo-linear-gradient';
 import { CATEGORIES } from '@/data/categories';
-import { Category } from '@/types';
 import { CategoryCard } from '@/components/CategoryCard';
 import { GradientBackground } from '@/components/GradientBackground';
-import { GlassCard } from '@/components/GlassCard';
 import { SwipeChevron } from '@/components/SwipeChevron';
 import { useRandomQuote } from '@/hooks/useRandomQuote';
-import { ACCENT, TEXT_DARK, TEXT_MID, TEXT_DIM } from '@/constants/theme';
+import { ACCENT, BG_TOP, TEXT_DARK, TEXT_MID, TEXT_DIM } from '@/constants/theme';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 // Smooth spring for collapse, bouncy spring for expand
-const SPRING_EXPAND = { damping: 12, stiffness: 160 };
-const SPRING_COLLAPSE = { damping: 20, stiffness: 130 };
-const DRAG_DISTANCE = 260;
-
-function CategoryRow({
-  category,
-  progress,
-  index,
-}: {
-  category: Category;
-  progress: SharedValue<number>;
-  index: number;
-}) {
-  // Spread cards evenly across swipe: card 0 enters at 5%, card 7 at 61%
-  const entryStart = 0.05 + index * 0.08;
-  const entryEnd = Math.min(1, entryStart + 0.28);
-
-  const style = useAnimatedStyle(() => {
-    const raw = (progress.value - entryStart) / (entryEnd - entryStart);
-    const p = Math.min(1, Math.max(0, raw));
-    // Ease-out quad: fast launch, gentle landing
-    const eased = p * (2 - p);
-    return {
-      opacity: Math.min(1, p * 4),       // fully opaque by 25% of entry window
-      transform: [{ translateY: (1 - eased) * 110 }],  // 110px upward travel
-    };
-  });
-
-  return (
-    <Animated.View style={style}>
-      <CategoryCard category={category} />
-    </Animated.View>
-  );
-}
+const SPRING_EXPAND = { damping: 12, stiffness: 78, mass: 1.15 };
+const SPRING_COLLAPSE = { damping: 10, stiffness: 120, mass: 1.1 };
+// Spring-commit thresholds: require real pull before auto-completing, so list feels dragged up
+const EXPAND_THRESHOLD = 0.38;
+const COLLAPSE_THRESHOLD = 0.62;
+const FLING_VELOCITY = 1400;
 
 export default function Home() {
   const insets = useSafeAreaInsets();
@@ -64,6 +34,7 @@ export default function Home() {
   const progress = useSharedValue(0);
   const expandTarget = useSharedValue(0);
   const scrollY = useSharedValue(0);
+  const listHeight = useSharedValue(SCREEN_H);
 
   // NativeViewGestureHandler ref — required for simultaneousWithExternalGesture
   // to correctly coexist with the ScrollView's native scroll gesture
@@ -80,17 +51,25 @@ export default function Home() {
     .activeOffsetY([-6, 6])
     .simultaneousWithExternalGesture(nativeRef)
     .onUpdate(e => {
+      // 1:1 finger tracking — progress reflects list pixel travel divided by list height
+      const dist = listHeight.value > 0 ? listHeight.value : SCREEN_H;
       if (expandTarget.value === 0) {
-        // Collapsed → swiping up to expand
-        progress.value = Math.min(1, Math.max(0, -e.translationY / DRAG_DISTANCE));
+        progress.value = Math.min(1, Math.max(0, -e.translationY / dist));
       } else if (scrollY.value <= 2) {
-        // Expanded + at top of list → swiping down to collapse
-        // translationY is POSITIVE when swiping down, so subtract to reduce progress
-        progress.value = Math.min(1, Math.max(0, 1 - e.translationY / DRAG_DISTANCE));
+        progress.value = Math.min(1, Math.max(0, 1 - e.translationY / dist));
       }
     })
-    .onEnd(() => {
-      const shouldExpand = progress.value > 0.5;
+    .onEnd(e => {
+      const wasExpanded = expandTarget.value === 1;
+      const flungUp = e.velocityY < -FLING_VELOCITY;
+      const flungDown = e.velocityY > FLING_VELOCITY;
+      let shouldExpand: boolean;
+      if (flungUp) shouldExpand = true;
+      else if (flungDown) shouldExpand = false;
+      else
+        shouldExpand = wasExpanded
+          ? progress.value > COLLAPSE_THRESHOLD
+          : progress.value > EXPAND_THRESHOLD;
       expandTarget.value = shouldExpand ? 1 : 0;
       progress.value = withSpring(
         shouldExpand ? 1 : 0,
@@ -102,21 +81,28 @@ export default function Home() {
   const greetingEnd = 8;
 
   const largeGreetingStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.45], [1, 0]),
+    opacity: interpolate(progress.value, [0, 0.18], [1, 0]),
     transform: [
-      { translateY: interpolate(progress.value, [0, 1], [0, -(greetingStart - greetingEnd)]) },
+      { translateY: interpolate(progress.value, [0, 0.4], [0, -(greetingStart - greetingEnd)]) },
     ],
   }));
 
   const quoteStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.3], [1, 0]),
+    opacity: interpolate(progress.value, [0, 0.12], [1, 0]),
   }));
 
   const headerStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0.45, 1], [0, 1]),
-    transform: [{ translateY: interpolate(progress.value, [0, 1], [16, 0]) }],
+    opacity: interpolate(progress.value, [0.18, 0.4], [0, 1]),
+    transform: [{ translateY: interpolate(progress.value, [0, 0.4], [16, 0]) }],
   }));
 
+  const listSlideStyle = useAnimatedStyle(() => ({
+    // Linear 1:1 with progress — list climbs from screen bottom as finger drags up.
+    transform: [
+      { translateY: interpolate(progress.value, [0, 1], [listHeight.value, 0]) },
+    ],
+    opacity: interpolate(progress.value, [0, 0.02, 1], [0, 1, 1]),
+  }));
 
   return (
     <GestureDetector gesture={pan}>
@@ -135,37 +121,48 @@ export default function Home() {
           style={[styles.quoteWrap, { top: SCREEN_H * 0.32 + insets.top + 130 }, quoteStyle]}
           pointerEvents="none"
         >
-          <GlassCard style={styles.quoteCard}>
-            <Text style={styles.quoteText}>&ldquo;{quote.text}&rdquo;</Text>
-            {quote.source ? (
-              <Text style={styles.quoteSource}>— {quote.source}</Text>
-            ) : null}
-          </GlassCard>
+          <Text style={styles.quoteText}>&ldquo;{quote.text}&rdquo;</Text>
+          {quote.source ? (
+            <Text style={styles.quoteSource}>— {quote.source}</Text>
+          ) : null}
         </Animated.View>
 
         <Animated.View
-          style={[styles.header, { paddingTop: insets.top + 10 }, headerStyle]}
-          pointerEvents="none"
+          style={[styles.categories, { paddingTop: insets.top + 84 }, listSlideStyle]}
+          onLayout={(e) => {
+            listHeight.value = e.nativeEvent.layout.height;
+          }}
         >
-          <Text style={styles.headerGreeting}>As-Salamu Alaykum</Text>
-          <Text style={styles.headerSub}>Dhikrullah</Text>
-        </Animated.View>
-
-        <Animated.View style={[styles.categories, { paddingTop: insets.top + 76 }]}>
           <NativeViewGestureHandler ref={nativeRef}>
             <Animated.ScrollView
               onScroll={scrollHandler}
               scrollEventThrottle={16}
-              bounces={false}
-              overScrollMode="never"
+              bounces
+              alwaysBounceVertical={false}
+              overScrollMode="always"
               contentContainerStyle={styles.list}
               showsVerticalScrollIndicator={false}
             >
-              {CATEGORIES.map((c, i) => (
-                <CategoryRow key={c.id} category={c} progress={progress} index={i} />
+              {CATEGORIES.map((c) => (
+                <CategoryCard key={c.id} category={c} />
               ))}
             </Animated.ScrollView>
           </NativeViewGestureHandler>
+        </Animated.View>
+
+        <Animated.View
+          style={[styles.headerWrap, { height: insets.top + 74 }, headerStyle]}
+          pointerEvents="none"
+        >
+          <LinearGradient
+            colors={[BG_TOP, BG_TOP, 'rgba(212,232,212,0)']}
+            locations={[0, 0.7, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={[styles.headerInner, { paddingTop: insets.top + 28 }]}>
+            <Text style={styles.headerGreeting}>As-Salamu Alaykum</Text>
+            <Text style={styles.headerSub}>Dhikrullah</Text>
+          </View>
         </Animated.View>
 
         <SwipeChevron progress={progress} bottomOffset={tabBarH} />
@@ -189,6 +186,7 @@ const styles = StyleSheet.create({
     color: TEXT_DARK,
     letterSpacing: -0.5,
     lineHeight: 52,
+    textAlign: 'center',
   },
   greetingLine2: {
     fontSize: 46,
@@ -196,15 +194,12 @@ const styles = StyleSheet.create({
     color: ACCENT,
     letterSpacing: -0.5,
     lineHeight: 52,
+    textAlign: 'center',
   },
   quoteWrap: {
     position: 'absolute',
-    left: 20,
-    right: 20,
-  },
-  quoteCard: {
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    left: 24,
+    right: 24,
   },
   quoteText: {
     fontSize: 14,
@@ -219,13 +214,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
-  header: {
+  headerWrap: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    alignItems: 'center',
     zIndex: 10,
+  },
+  headerInner: {
+    alignItems: 'center',
   },
   headerGreeting: {
     fontSize: 20,

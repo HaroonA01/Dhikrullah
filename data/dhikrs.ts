@@ -1,6 +1,66 @@
 import { CategoryId, Dhikr } from '@/types';
 
 export const DHIKRS: Record<CategoryId, Dhikr[]> = {
+  all_day: [
+    {
+      id: 'all_day-01',
+      arabic: 'سُبْحَانَ اللَّهِ',
+      transliteration: 'SubhanAllah',
+      translation: 'Glory be to Allah',
+      target: 100,
+    },
+    {
+      id: 'all_day-02',
+      arabic: 'الْحَمْدُ لِلَّهِ',
+      transliteration: 'Alhamdulillah',
+      translation: 'All praise is due to Allah',
+      target: 100,
+    },
+    {
+      id: 'all_day-03',
+      arabic: 'لَا إِلَٰهَ إِلَّا اللَّهُ',
+      transliteration: 'La ilaha illa Allah',
+      translation: 'There is no god but Allah',
+      target: 100,
+    },
+    {
+      id: 'all_day-04',
+      arabic: 'اللَّهُ أَكْبَرُ',
+      transliteration: 'Allahu Akbar',
+      translation: 'Allah is the Greatest',
+      target: 100,
+    },
+    {
+      id: 'all_day-05',
+      arabic: 'أَسْتَغْفِرُ اللَّهَ',
+      transliteration: 'Astaghfirullah',
+      translation: 'I seek forgiveness from Allah',
+      target: 100,
+    },
+  ],
+  waking_up: [
+    {
+      id: 'waking_up-01',
+      arabic: 'الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ',
+      transliteration: 'Alhamdulillahi alladhi ahyana ba’da ma amatana wa ilayhi an-nushoor',
+      translation: 'Praise be to Allah who gave us life after taking it, and to Him is the resurrection',
+      target: 1,
+    },
+    {
+      id: 'waking_up-02',
+      arabic: 'لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ',
+      transliteration: 'La ilaha illa Allahu wahdahu la sharika lah',
+      translation: 'There is no god but Allah, alone, without partner',
+      target: 1,
+    },
+    {
+      id: 'waking_up-03',
+      arabic: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
+      transliteration: 'SubhanAllahi wa bihamdih',
+      translation: 'Glory be to Allah and praise Him',
+      target: 3,
+    },
+  ],
   morning: [
     {
       id: 'morning-01',
@@ -183,6 +243,43 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       transliteration: 'Allahu Akbar',
       translation: 'Allah is the Greatest',
       target: 34,
+    },
+  ],
+  before_bed: [
+    {
+      id: 'before_bed-01',
+      arabic: 'بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا',
+      transliteration: 'Bismika Allahumma amutu wa ahya',
+      translation: 'In Your name O Allah, I die and I live',
+      target: 1,
+    },
+    {
+      id: 'before_bed-02',
+      arabic: 'سُبْحَانَ اللَّهِ',
+      transliteration: 'SubhanAllah',
+      translation: 'Glory be to Allah',
+      target: 33,
+    },
+    {
+      id: 'before_bed-03',
+      arabic: 'الْحَمْدُ لِلَّهِ',
+      transliteration: 'Alhamdulillah',
+      translation: 'All praise is due to Allah',
+      target: 33,
+    },
+    {
+      id: 'before_bed-04',
+      arabic: 'اللَّهُ أَكْبَرُ',
+      transliteration: 'Allahu Akbar',
+      translation: 'Allah is the Greatest',
+      target: 34,
+    },
+    {
+      id: 'before_bed-05',
+      arabic: 'آيَةُ الْكُرْسِيِّ',
+      transliteration: 'Ayat al-Kursi',
+      translation: 'The Verse of the Throne (Al-Baqarah 2:255)',
+      target: 1,
     },
   ],
 };

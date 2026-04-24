@@ -1,10 +1,24 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { Sun, Sunset, Moon, Sunrise, Clock, Hourglass, Compass, Star } from 'lucide-react-native';
+import {
+  Sun,
+  Sunset,
+  Moon,
+  Sunrise,
+  Clock,
+  Hourglass,
+  Compass,
+  Star,
+  Sparkles,
+  Coffee,
+  BedDouble,
+} from 'lucide-react-native';
 import { Category, CategoryId } from '@/types';
 import { ACCENT, TEXT_DARK, TEXT_MID, GLASS_BG, GLASS_BORDER } from '@/constants/theme';
 
 const ARABIC: Record<CategoryId, string> = {
+  all_day: 'ك',
+  waking_up: 'ي',
   morning: 'ص',
   evening: 'م',
   night: 'ن',
@@ -13,9 +27,12 @@ const ARABIC: Record<CategoryId, string> = {
   asr: 'ع',
   maghrib: 'غ',
   isha: 'ش',
+  before_bed: 'ل',
 };
 
 const SUBTITLES: Record<CategoryId, string> = {
+  all_day: 'Anytime',
+  waking_up: 'Upon awakening',
   morning: 'After Fajr prayer',
   evening: 'After Asr prayer',
   night: 'Before sleep',
@@ -24,9 +41,12 @@ const SUBTITLES: Record<CategoryId, string> = {
   asr: 'Afternoon prayer',
   maghrib: 'Sunset prayer',
   isha: 'Night prayer',
+  before_bed: 'Sleeping dua',
 };
 
 const ICONS: Record<CategoryId, React.ComponentType<{ size: number; color: string; strokeWidth: number }>> = {
+  all_day: Sparkles,
+  waking_up: Coffee,
   morning: Sun,
   evening: Sunset,
   night: Moon,
@@ -35,6 +55,7 @@ const ICONS: Record<CategoryId, React.ComponentType<{ size: number; color: strin
   asr: Hourglass,
   maghrib: Compass,
   isha: Star,
+  before_bed: BedDouble,
 };
 
 export function CategoryCard({ category }: { category: Category }) {

@@ -7,72 +7,40 @@ import Animated, {
   withTiming,
   withDelay,
   withSequence,
-  runOnJS,
 } from 'react-native-reanimated';
 import { GradientBackground } from '@/components/GradientBackground';
 import { GlassCard } from '@/components/GlassCard';
+import { DustChar } from '@/components/DustChar';
 import { useRandomQuote } from '@/hooks/useRandomQuote';
 import { ACCENT, TEXT_DARK, TEXT_MID } from '@/constants/theme';
 
 // ── timing constants ────────────────────────────────────────────────
-const APPEAR_DUR = 250;
-const DISAPPEAR_DUR = 220;
-const STAGGER = 50;
-const DIS_STAGGER = 25;
-const EN_START = 100;
+const APPEAR_DUR = 300;
+const DISAPPEAR_DUR = 400;
+const STAGGER = 60;
+const DIS_STAGGER = 35;
+const EN_START = 150;
 const EN_N = 10; // "Dhikrullah"
 
-// When all English letters are fully visible:
-// lastLetterStart = EN_START + (EN_N-1)*STAGGER = 550
-// lastLetterDone  = 550 + APPEAR_DUR = 800
-// hold 350ms → EN_DISAPPEAR_START = 800 + 350 = 1150
+// Last English letter fully in: 150 + 9*60 + 300 = 990
+// Hold 350ms → EN_DISAPPEAR_START = 1340
 const EN_DISAPPEAR_START = EN_START + (EN_N - 1) * STAGGER + APPEAR_DUR + 350;
 
-// Last English letter disappear ends: 1150 + 9*25 + 220 = 1595
-// Arabic starts at 1650 with longer appear + hold + disappear
-const AR_START = 1650;
-const AR_APPEAR_DUR = 400;
-const AR_HOLD = 400;
-const AR_DISAPPEAR_DUR = 300;
-// Arabic done: 1650 + 400 + 400 + 300 = 2750
+// Last letter disappear ends: 1340 + 9*35 + 400 = 2055
+// Particles drift ~750ms past fade → settled by ~2800
+const AR_START = 2500;
+const AR_APPEAR_DUR = 500;
+const AR_HOLD = 500;
+const AR_DISAPPEAR_DUR = 400;
+// Arabic done: 2500 + 500 + 500 + 400 = 3900
 
-const NAVIGATE_AT = 2800;
+const NAVIGATE_AT = 4000;
 
 const ENGLISH_CHARS = 'Dhikrullah'.split('');
 const ARABIC_TEXT = 'ذكر الله';
 
 function navigate() {
   router.replace('/(tabs)');
-}
-
-// Each English letter: rises in, holds, then drifts up and fades
-function DustChar({ char, appearDelay, holdDur }: { char: string; appearDelay: number; holdDur: number }) {
-  const opacity = useSharedValue(0);
-  const ty = useSharedValue(14);
-
-  useEffect(() => {
-    opacity.value = withDelay(
-      appearDelay,
-      withSequence(
-        withTiming(1, { duration: APPEAR_DUR }),
-        withDelay(Math.max(0, holdDur), withTiming(0, { duration: DISAPPEAR_DUR }))
-      )
-    );
-    ty.value = withDelay(
-      appearDelay,
-      withSequence(
-        withTiming(0, { duration: APPEAR_DUR }),
-        withDelay(Math.max(0, holdDur), withTiming(-18, { duration: DISAPPEAR_DUR }))
-      )
-    );
-  }, []);
-
-  const style = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: ty.value }],
-  }));
-
-  return <Animated.Text style={[styles.titleChar, style]}>{char}</Animated.Text>;
 }
 
 export default function Loading() {
@@ -82,10 +50,8 @@ export default function Loading() {
   const quoteOpacity = useSharedValue(0);
 
   useEffect(() => {
-    // Quote fades in gently after English settles
     quoteOpacity.value = withDelay(800, withTiming(1, { duration: 400 }));
 
-    // Arabic: rise in (green), hold, scatter upward and fade
     arabicOpacity.value = withDelay(
       AR_START,
       withSequence(
@@ -117,25 +83,30 @@ export default function Loading() {
       <GradientBackground />
 
       <View style={styles.inner}>
-        {/* Fixed-height title area — English and Arabic overlap here */}
         <View style={styles.titleArea}>
-          {/* English: letter-by-letter dust */}
           <View style={[styles.titleRow, StyleSheet.absoluteFillObject]}>
             {ENGLISH_CHARS.map((char, i) => {
               const appearDelay = EN_START + i * STAGGER;
               const disappearStart = EN_DISAPPEAR_START + i * DIS_STAGGER;
               const holdDur = disappearStart - (appearDelay + APPEAR_DUR);
-              return <DustChar key={i} char={char} appearDelay={appearDelay} holdDur={holdDur} />;
+              return (
+                <DustChar
+                  key={i}
+                  char={char}
+                  index={i}
+                  appearDelay={appearDelay}
+                  holdDur={holdDur}
+                  disappearStart={disappearStart}
+                />
+              );
             })}
           </View>
 
-          {/* Arabic: whole-string dust (avoids ligature breakage) */}
           <Animated.Text style={[styles.arabic, StyleSheet.absoluteFillObject, arabicStyle]}>
             {ARABIC_TEXT}
           </Animated.Text>
         </View>
 
-        {/* Quote below — fades in after English settles */}
         <Animated.View style={[styles.quoteWrap, quoteStyle]}>
           <GlassCard style={styles.quoteCard}>
             <Text style={styles.quoteText}>&ldquo;{quote.text}&rdquo;</Text>
@@ -171,12 +142,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  titleChar: {
-    fontSize: 44,
-    fontWeight: '700',
-    color: TEXT_DARK,
-    letterSpacing: 1,
   },
   arabic: {
     fontSize: 32,
