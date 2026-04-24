@@ -23,6 +23,8 @@ export interface Dhikr {
   transliteration: string;
   translation: string;
   target: number;
+  reference: string;
+  audio?: number;
 }
 
 export interface CounterState {

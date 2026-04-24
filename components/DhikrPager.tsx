@@ -32,7 +32,7 @@ export function DhikrPager({ dhikr }: { dhikr: Dhikr }) {
 
 const styles = StyleSheet.create({
   wrap: { width: '100%' },
-  pager: { height: 180 },
+  pager: { height: 260 },
   page: {
     flex: 1,
     justifyContent: 'center',
