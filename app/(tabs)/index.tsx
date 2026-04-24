@@ -10,7 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector, NativeViewGestureHandler } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CATEGORIES } from '@/data/categories';
+import { useDhikrContent } from '@/context/CounterContext';
 import { CategoryCard } from '@/components/CategoryCard';
 import { GradientBackground } from '@/components/GradientBackground';
 import { SwipeChevron } from '@/components/SwipeChevron';
@@ -29,6 +29,7 @@ const FLING_VELOCITY = 1400;
 export default function Home() {
   const insets = useSafeAreaInsets();
   const quote = useRandomQuote();
+  const { categories } = useDhikrContent();
   const tabBarH = 80;
 
   const progress = useSharedValue(0);
@@ -143,7 +144,7 @@ export default function Home() {
               contentContainerStyle={styles.list}
               showsVerticalScrollIndicator={false}
             >
-              {CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <CategoryCard key={c.id} category={c} />
               ))}
             </Animated.ScrollView>

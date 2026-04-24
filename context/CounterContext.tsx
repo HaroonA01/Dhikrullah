@@ -1,15 +1,31 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { CategoryId, CounterState } from '@/types';
-import { CATEGORIES } from '@/data/categories';
-import { DHIKRS } from '@/data/dhikrs';
-import { multiGetJSON, setJSON, storageKey } from '@/lib/storage';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import type { Category, CategoryId, CounterState, Dhikr } from '@/types';
+import { isKnownCategoryId } from '@/types';
+import {
+  getAllCategoryState,
+  getAllCounters,
+  getAllDhikrs,
+  getCategories,
+  resetCategoryCounts,
+  setCategoryIndex,
+  setCount,
+} from '@/db/queries';
 import { hapticsLight, hapticsStrong } from '@/lib/haptics';
 
-type AllState = Record<CategoryId, CounterState>;
-type TickMap = Partial<Record<CategoryId, number>>;
+type AllState = Record<string, CounterState>;
+type TickMap = Record<string, number>;
 
 interface ContextValue {
   hydrated: boolean;
+  categories: Category[];
+  dhikrsByCategory: Record<string, Dhikr[]>;
   states: AllState;
   confettiTicks: TickMap;
   incrementCurrent: (id: CategoryId) => void;
@@ -19,55 +35,98 @@ interface ContextValue {
   resetAll: (id: CategoryId) => void;
 }
 
-const keyFor = (id: CategoryId) => storageKey(`counter:${id}`);
-
-const emptyState = (id: CategoryId): CounterState => {
-  const counts: Record<string, number> = {};
-  for (const d of DHIKRS[id]) counts[d.id] = 0;
-  return { currentDhikrIndex: 0, counts };
-};
-
-const buildInitial = (): AllState => {
-  const out = {} as AllState;
-  for (const c of CATEGORIES) out[c.id] = emptyState(c.id);
-  return out;
-};
-
 const CounterContext = createContext<ContextValue | null>(null);
 
 const ADVANCE_DELAY_MS = 3000;
+const WRITE_DEBOUNCE_MS = 150;
+
+function toCategory(row: { id: string; label: string; sortOrder: number }): Category {
+  return {
+    id: isKnownCategoryId(row.id) ? row.id : (row.id as CategoryId),
+    label: row.label,
+    sortOrder: row.sortOrder,
+  };
+}
+
+function toDhikr(row: {
+  id: string;
+  categoryId: string;
+  arabic: string;
+  transliteration: string;
+  translation: string;
+  target: number;
+  description: string | null;
+  reference: string | null;
+  grade: string | null;
+  audioFilename: string | null;
+  sortOrder: number;
+}): Dhikr {
+  return {
+    id: row.id,
+    categoryId: isKnownCategoryId(row.categoryId)
+      ? row.categoryId
+      : (row.categoryId as CategoryId),
+    arabic: row.arabic,
+    transliteration: row.transliteration,
+    translation: row.translation,
+    target: row.target,
+    description: row.description,
+    reference: row.reference,
+    grade: row.grade,
+    audioFilename: row.audioFilename,
+    sortOrder: row.sortOrder,
+  };
+}
 
 export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [states, setStates] = useState<AllState>(buildInitial);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [dhikrsByCategory, setDhikrsByCategory] = useState<Record<string, Dhikr[]>>({});
+  const [states, setStates] = useState<AllState>({});
   const [confettiTicks, setConfettiTicks] = useState<TickMap>({});
   const [hydrated, setHydrated] = useState(false);
-  const writeTimers = useRef<Partial<Record<CategoryId, ReturnType<typeof setTimeout>>>>({});
-  const advanceTimers = useRef<Partial<Record<CategoryId, ReturnType<typeof setTimeout>>>>({});
+  const countWriteTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const indexWriteTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const advanceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const keys = CATEGORIES.map(c => keyFor(c.id));
-      const loaded = await multiGetJSON<CounterState>(keys);
+      const [catRows, dhikrRows, counterRows, stateRows] = await Promise.all([
+        getCategories(),
+        getAllDhikrs(),
+        getAllCounters(),
+        getAllCategoryState(),
+      ]);
       if (cancelled) return;
-      setStates(prev => {
-        const next = { ...prev };
-        for (const c of CATEGORIES) {
-          const stored = loaded[keyFor(c.id)];
-          if (stored) {
-            const counts = { ...prev[c.id].counts };
-            for (const [dId, v] of Object.entries(stored.counts ?? {})) {
-              if (dId in counts) counts[dId] = v;
-            }
-            const idx = Math.min(
-              Math.max(stored.currentDhikrIndex ?? 0, 0),
-              DHIKRS[c.id].length - 1,
-            );
-            next[c.id] = { currentDhikrIndex: idx, counts };
-          }
+
+      const cats = catRows.map(toCategory);
+      const grouped: Record<string, Dhikr[]> = {};
+      for (const r of dhikrRows) {
+        const d = toDhikr(r);
+        (grouped[d.categoryId] ??= []).push(d);
+      }
+
+      const countByDhikr = new Map(counterRows.map((c) => [c.dhikrId, c.count]));
+      const idxByCategory = new Map(stateRows.map((s) => [s.categoryId, s.currentDhikrIndex]));
+
+      const nextStates: AllState = {};
+      for (const c of cats) {
+        const list = grouped[c.id] ?? [];
+        const counts: Record<string, number> = {};
+        for (const d of list) {
+          counts[d.id] = countByDhikr.get(d.id) ?? 0;
         }
-        return next;
-      });
+        const rawIdx = idxByCategory.get(c.id) ?? 0;
+        const maxIdx = Math.max(list.length - 1, 0);
+        nextStates[c.id] = {
+          currentDhikrIndex: Math.min(Math.max(rawIdx, 0), maxIdx),
+          counts,
+        };
+      }
+
+      setCategories(cats);
+      setDhikrsByCategory(grouped);
+      setStates(nextStates);
       setHydrated(true);
     })();
     return () => {
@@ -76,144 +135,172 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   useEffect(() => {
-    const timers = advanceTimers.current;
+    const aTimers = advanceTimers.current;
+    const cTimers = countWriteTimers.current;
+    const iTimers = indexWriteTimers.current;
     return () => {
-      for (const key of Object.keys(timers)) {
-        const t = timers[key as CategoryId];
-        if (t) clearTimeout(t);
-      }
+      for (const k of Object.keys(aTimers)) clearTimeout(aTimers[k]);
+      for (const k of Object.keys(cTimers)) clearTimeout(cTimers[k]);
+      for (const k of Object.keys(iTimers)) clearTimeout(iTimers[k]);
     };
   }, []);
 
-  const scheduleWrite = useCallback((id: CategoryId, state: CounterState) => {
-    const existing = writeTimers.current[id];
+  const scheduleCountWrite = useCallback((dhikrId: string, count: number) => {
+    const existing = countWriteTimers.current[dhikrId];
     if (existing) clearTimeout(existing);
-    writeTimers.current[id] = setTimeout(() => {
-      setJSON(keyFor(id), state);
-    }, 150);
+    countWriteTimers.current[dhikrId] = setTimeout(() => {
+      setCount(dhikrId, count).catch(() => {});
+    }, WRITE_DEBOUNCE_MS);
   }, []);
 
-  const bumpConfetti = useCallback((id: CategoryId) => {
-    setConfettiTicks(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
+  const scheduleIndexWrite = useCallback((categoryId: string, index: number) => {
+    const existing = indexWriteTimers.current[categoryId];
+    if (existing) clearTimeout(existing);
+    indexWriteTimers.current[categoryId] = setTimeout(() => {
+      setCategoryIndex(categoryId, index).catch(() => {});
+    }, WRITE_DEBOUNCE_MS);
   }, []);
 
-  const scheduleAdvance = useCallback((id: CategoryId) => {
-    const existing = advanceTimers.current[id];
-    if (existing) clearTimeout(existing);
-    advanceTimers.current[id] = setTimeout(() => {
-      setStates(prev => {
-        const list = DHIKRS[id];
-        const cur = prev[id];
-        const dhikr = list[cur.currentDhikrIndex];
-        if (!dhikr) return prev;
-        const curCount = cur.counts[dhikr.id] ?? 0;
-        if (curCount < dhikr.target) return prev;
-        if (cur.currentDhikrIndex + 1 >= list.length) return prev;
-        const nextIdx = cur.currentDhikrIndex + 1;
-        const nextD = list[nextIdx];
-        const counts = { ...cur.counts, [nextD.id]: 0 };
-        const nextState: CounterState = { currentDhikrIndex: nextIdx, counts };
-        scheduleWrite(id, nextState);
-        return { ...prev, [id]: nextState };
-      });
-    }, ADVANCE_DELAY_MS);
-  }, [scheduleWrite]);
+  const bumpConfetti = useCallback((id: string) => {
+    setConfettiTicks((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
+  }, []);
 
-  const incrementCurrent = useCallback((id: CategoryId) => {
-    setStates(prev => {
-      const list = DHIKRS[id];
-      const cur = prev[id];
-      const dhikr = list[cur.currentDhikrIndex];
-      if (!dhikr) return prev;
-      const currentCount = cur.counts[dhikr.id] ?? 0;
-      if (currentCount >= dhikr.target) return prev;
-      const newCount = currentCount + 1;
-      const counts = { ...cur.counts };
-
-      if (newCount >= dhikr.target) {
-        counts[dhikr.id] = dhikr.target;
-        hapticsStrong();
-        bumpConfetti(id);
-        if (cur.currentDhikrIndex + 1 < list.length) {
-          scheduleAdvance(id);
-        }
-      } else {
-        counts[dhikr.id] = newCount;
-        hapticsLight();
-      }
-
-      const nextState: CounterState = { currentDhikrIndex: cur.currentDhikrIndex, counts };
-      scheduleWrite(id, nextState);
-      return { ...prev, [id]: nextState };
-    });
-  }, [scheduleWrite, bumpConfetti, scheduleAdvance]);
-
-  const decrementCurrent = useCallback((id: CategoryId) => {
-    setStates(prev => {
-      const list = DHIKRS[id];
-      const cur = prev[id];
-      const dhikr = list[cur.currentDhikrIndex];
-      if (!dhikr) return prev;
-      const currentCount = cur.counts[dhikr.id] ?? 0;
-      if (currentCount <= 0) return prev;
-      const counts = { ...cur.counts, [dhikr.id]: currentCount - 1 };
-      hapticsLight();
-      const nextState: CounterState = { ...cur, counts };
-      scheduleWrite(id, nextState);
-      return { ...prev, [id]: nextState };
-    });
-  }, [scheduleWrite]);
-
-  const clearAdvance = useCallback((id: CategoryId) => {
+  const clearAdvance = useCallback((id: string) => {
     const t = advanceTimers.current[id];
     if (t) {
       clearTimeout(t);
-      advanceTimers.current[id] = undefined;
+      delete advanceTimers.current[id];
     }
   }, []);
 
-  const nextDhikr = useCallback((id: CategoryId) => {
-    clearAdvance(id);
-    setStates(prev => {
-      const list = DHIKRS[id];
-      const cur = prev[id];
-      if (cur.currentDhikrIndex + 1 >= list.length) return prev;
-      const nextState: CounterState = {
-        ...cur,
-        currentDhikrIndex: cur.currentDhikrIndex + 1,
-      };
-      scheduleWrite(id, nextState);
-      return { ...prev, [id]: nextState };
-    });
-  }, [scheduleWrite, clearAdvance]);
+  const scheduleAdvance = useCallback(
+    (id: string) => {
+      clearAdvance(id);
+      advanceTimers.current[id] = setTimeout(() => {
+        setStates((prev) => {
+          const list = dhikrsByCategory[id] ?? [];
+          const cur = prev[id];
+          if (!cur) return prev;
+          const dhikr = list[cur.currentDhikrIndex];
+          if (!dhikr) return prev;
+          if ((cur.counts[dhikr.id] ?? 0) < dhikr.target) return prev;
+          if (cur.currentDhikrIndex + 1 >= list.length) return prev;
+          const nextIdx = cur.currentDhikrIndex + 1;
+          const nextD = list[nextIdx];
+          const counts = { ...cur.counts, [nextD.id]: cur.counts[nextD.id] ?? 0 };
+          scheduleIndexWrite(id, nextIdx);
+          return { ...prev, [id]: { currentDhikrIndex: nextIdx, counts } };
+        });
+      }, ADVANCE_DELAY_MS);
+    },
+    [dhikrsByCategory, scheduleIndexWrite, clearAdvance],
+  );
 
-  const prevDhikr = useCallback((id: CategoryId) => {
-    clearAdvance(id);
-    setStates(prev => {
-      const cur = prev[id];
-      if (cur.currentDhikrIndex <= 0) return prev;
-      const nextState: CounterState = {
-        ...cur,
-        currentDhikrIndex: cur.currentDhikrIndex - 1,
-      };
-      scheduleWrite(id, nextState);
-      return { ...prev, [id]: nextState };
-    });
-  }, [scheduleWrite, clearAdvance]);
+  const incrementCurrent = useCallback(
+    (id: CategoryId) => {
+      setStates((prev) => {
+        const list = dhikrsByCategory[id] ?? [];
+        const cur = prev[id];
+        if (!cur) return prev;
+        const dhikr = list[cur.currentDhikrIndex];
+        if (!dhikr) return prev;
+        const currentCount = cur.counts[dhikr.id] ?? 0;
+        if (currentCount >= dhikr.target) return prev;
+        const newCount = currentCount + 1;
+        const counts = { ...cur.counts };
 
-  const resetAll = useCallback((id: CategoryId) => {
-    clearAdvance(id);
-    setStates(prev => {
-      const next = emptyState(id);
-      scheduleWrite(id, next);
-      return { ...prev, [id]: next };
-    });
-  }, [scheduleWrite, clearAdvance]);
+        if (newCount >= dhikr.target) {
+          counts[dhikr.id] = dhikr.target;
+          hapticsStrong();
+          bumpConfetti(id);
+          if (cur.currentDhikrIndex + 1 < list.length) scheduleAdvance(id);
+          scheduleCountWrite(dhikr.id, dhikr.target);
+        } else {
+          counts[dhikr.id] = newCount;
+          hapticsLight();
+          scheduleCountWrite(dhikr.id, newCount);
+        }
+
+        return {
+          ...prev,
+          [id]: { currentDhikrIndex: cur.currentDhikrIndex, counts },
+        };
+      });
+    },
+    [dhikrsByCategory, bumpConfetti, scheduleAdvance, scheduleCountWrite],
+  );
+
+  const decrementCurrent = useCallback(
+    (id: CategoryId) => {
+      setStates((prev) => {
+        const list = dhikrsByCategory[id] ?? [];
+        const cur = prev[id];
+        if (!cur) return prev;
+        const dhikr = list[cur.currentDhikrIndex];
+        if (!dhikr) return prev;
+        const currentCount = cur.counts[dhikr.id] ?? 0;
+        if (currentCount <= 0) return prev;
+        const newCount = currentCount - 1;
+        const counts = { ...cur.counts, [dhikr.id]: newCount };
+        hapticsLight();
+        scheduleCountWrite(dhikr.id, newCount);
+        return { ...prev, [id]: { ...cur, counts } };
+      });
+    },
+    [dhikrsByCategory, scheduleCountWrite],
+  );
+
+  const nextDhikr = useCallback(
+    (id: CategoryId) => {
+      clearAdvance(id);
+      setStates((prev) => {
+        const list = dhikrsByCategory[id] ?? [];
+        const cur = prev[id];
+        if (!cur) return prev;
+        if (cur.currentDhikrIndex + 1 >= list.length) return prev;
+        const nextIdx = cur.currentDhikrIndex + 1;
+        scheduleIndexWrite(id, nextIdx);
+        return { ...prev, [id]: { ...cur, currentDhikrIndex: nextIdx } };
+      });
+    },
+    [dhikrsByCategory, scheduleIndexWrite, clearAdvance],
+  );
+
+  const prevDhikr = useCallback(
+    (id: CategoryId) => {
+      clearAdvance(id);
+      setStates((prev) => {
+        const cur = prev[id];
+        if (!cur) return prev;
+        if (cur.currentDhikrIndex <= 0) return prev;
+        const nextIdx = cur.currentDhikrIndex - 1;
+        scheduleIndexWrite(id, nextIdx);
+        return { ...prev, [id]: { ...cur, currentDhikrIndex: nextIdx } };
+      });
+    },
+    [scheduleIndexWrite, clearAdvance],
+  );
+
+  const resetAll = useCallback(
+    (id: CategoryId) => {
+      clearAdvance(id);
+      setStates((prev) => {
+        const list = dhikrsByCategory[id] ?? [];
+        const counts: Record<string, number> = {};
+        for (const d of list) counts[d.id] = 0;
+        return { ...prev, [id]: { currentDhikrIndex: 0, counts } };
+      });
+      resetCategoryCounts(id).catch(() => {});
+    },
+    [dhikrsByCategory, clearAdvance],
+  );
 
   return (
     <CounterContext.Provider
       value={{
         hydrated,
+        categories,
+        dhikrsByCategory,
         states,
         confettiTicks,
         incrementCurrent,
@@ -232,4 +319,9 @@ export const useCounterContext = (): ContextValue => {
   const ctx = useContext(CounterContext);
   if (!ctx) throw new Error('useCounterContext must be used inside CounterProvider');
   return ctx;
+};
+
+export const useDhikrContent = () => {
+  const { categories, dhikrsByCategory, hydrated } = useCounterContext();
+  return { categories, dhikrsByCategory, hydrated };
 };

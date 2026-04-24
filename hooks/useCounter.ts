@@ -13,9 +13,11 @@ interface UseCounterResult {
   resetAll: () => void;
 }
 
+const EMPTY_STATE: CounterState = { currentDhikrIndex: 0, counts: {} };
+
 export function useCounter(categoryId: CategoryId): UseCounterResult {
   const ctx = useCounterContext();
-  const state = ctx.states[categoryId];
+  const state = ctx.states[categoryId] ?? EMPTY_STATE;
   const confettiTick = ctx.confettiTicks[categoryId] ?? 0;
 
   const incrementCurrent = useCallback(() => ctx.incrementCurrent(categoryId), [ctx, categoryId]);

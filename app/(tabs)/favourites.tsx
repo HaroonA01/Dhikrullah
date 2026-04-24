@@ -1,43 +1,44 @@
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Heart } from 'lucide-react-native';
 import { useFavourites } from '@/context/FavouritesContext';
-import { DHIKRS } from '@/data/dhikrs';
-import { CATEGORIES } from '@/data/categories';
+import { getFavouriteDhikrs } from '@/db/queries';
 import { GradientBackground } from '@/components/GradientBackground';
 import { GlassCard } from '@/components/GlassCard';
 import { ACCENT, TEXT_DARK, TEXT_MID, TEXT_DIM } from '@/constants/theme';
-import { CategoryId } from '@/types';
 
 interface FavItem {
-  dhikrId: string;
+  id: string;
   arabic: string;
   transliteration: string;
   categoryLabel: string;
 }
 
-function buildFavList(favouriteIds: Set<string>): FavItem[] {
-  const items: FavItem[] = [];
-  for (const cat of CATEGORIES) {
-    const dhikrs = DHIKRS[cat.id as CategoryId] ?? [];
-    for (const d of dhikrs) {
-      if (favouriteIds.has(d.id)) {
-        items.push({
-          dhikrId: d.id,
-          arabic: d.arabic,
-          transliteration: d.transliteration,
-          categoryLabel: cat.label,
-        });
-      }
-    }
-  }
-  return items;
-}
-
 export default function FavouritesScreen() {
   const insets = useSafeAreaInsets();
-  const { favouriteIds } = useFavourites();
-  const items = buildFavList(favouriteIds);
+  const { favouriteIds, hydrated } = useFavourites();
+  const [items, setItems] = useState<FavItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const rows = await getFavouriteDhikrs();
+      if (!cancelled) {
+        setItems(
+          rows.map((r) => ({
+            id: r.id,
+            arabic: r.arabic,
+            transliteration: r.transliteration,
+            categoryLabel: r.categoryLabel,
+          })),
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [favouriteIds]);
 
   return (
     <View style={styles.root}>
@@ -48,7 +49,7 @@ export default function FavouritesScreen() {
         <Text style={styles.title}>Favourites</Text>
       </View>
 
-      {items.length === 0 ? (
+      {hydrated && items.length === 0 ? (
         <View style={styles.empty}>
           <Heart size={40} color={ACCENT} strokeWidth={1.5} style={{ opacity: 0.4 }} />
           <Text style={styles.emptyTitle}>No favourites yet</Text>
@@ -61,8 +62,8 @@ export default function FavouritesScreen() {
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 100 }]}
           showsVerticalScrollIndicator={false}
         >
-          {items.map(item => (
-            <GlassCard key={item.dhikrId} style={styles.card}>
+          {items.map((item) => (
+            <GlassCard key={item.id} style={styles.card}>
               <Text style={styles.categoryBadge}>{item.categoryLabel}</Text>
               <Text style={styles.arabic}>{item.arabic}</Text>
               <Text style={styles.transliteration}>{item.transliteration}</Text>

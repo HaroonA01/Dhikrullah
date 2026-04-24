@@ -1,7 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { getJSON, setJSON, storageKey } from '@/lib/storage';
-
-const STORAGE_KEY = storageKey('favourites:ids');
+import { addFavourite, getAllFavouriteIds, removeFavourite } from '@/db/queries';
 
 interface ContextValue {
   hydrated: boolean;
@@ -19,24 +17,27 @@ export const FavouritesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const stored = await getJSON<string[]>(STORAGE_KEY);
+      const rows = await getAllFavouriteIds();
       if (!cancelled) {
-        setFavouriteIds(new Set(stored ?? []));
+        setFavouriteIds(new Set(rows.map((r) => r.id)));
         setHydrated(true);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const toggle = useCallback((id: string) => {
-    setFavouriteIds(prev => {
+    setFavouriteIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
+        removeFavourite(id).catch(() => {});
       } else {
         next.add(id);
+        addFavourite(id).catch(() => {});
       }
-      setJSON(STORAGE_KEY, Array.from(next));
       return next;
     });
   }, []);
