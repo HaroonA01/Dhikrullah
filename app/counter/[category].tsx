@@ -1,6 +1,13 @@
-import { useMemo, useState } from 'react';
-import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  AppState,
+  LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { SlideInRight, SlideOutLeft } from 'react-native-reanimated';
 import {
@@ -16,6 +23,12 @@ import { useDhikrContent } from '@/context/CounterContext';
 import { useCounter } from '@/hooks/useCounter';
 import { useFavourites } from '@/context/FavouritesContext';
 import { resolveAudio } from '@/db/audioMap';
+import {
+  getMeta,
+  incrementTimeSecondsForDate,
+  setMeta,
+} from '@/db/queries';
+import { META_KEY_LIFETIME_SECONDS, todayKey } from '@/lib/stats';
 import { DhikrPager } from '@/components/DhikrPager';
 import { GradientBackground } from '@/components/GradientBackground';
 import { GlassCard } from '@/components/GlassCard';
@@ -54,6 +67,32 @@ export default function CounterScreen() {
   const { toggle, isFavourite } = useFavourites();
   const [infoOpen, setInfoOpen] = useState(false);
   const [cardSize, setCardSize] = useState({ w: 0, h: 0 });
+
+  useFocusEffect(
+    useCallback(() => {
+      let start = Date.now();
+      const flush = async () => {
+        const seconds = Math.round((Date.now() - start) / 1000);
+        start = Date.now();
+        if (seconds <= 0) return;
+        try {
+          await incrementTimeSecondsForDate(todayKey(), seconds);
+          const lifetime = Number(
+            (await getMeta(META_KEY_LIFETIME_SECONDS)) ?? '0',
+          );
+          await setMeta(META_KEY_LIFETIME_SECONDS, String(lifetime + seconds));
+        } catch {}
+      };
+      const sub = AppState.addEventListener('change', (next) => {
+        if (next === 'active') start = Date.now();
+        else flush();
+      });
+      return () => {
+        flush();
+        sub.remove();
+      };
+    }, []),
+  );
 
   const { percent, completed } = useMemo(() => {
     if (!dhikrs.length) return { percent: 0, completed: 0 };

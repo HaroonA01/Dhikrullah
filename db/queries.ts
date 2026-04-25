@@ -1,9 +1,12 @@
-import { asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from './index';
 import {
   categories,
+  categoryCompletionLog,
   categoryState,
   counters,
+  dailyCategoryProgress,
+  dailyStats,
   dhikrs,
   favourites,
   meta,
@@ -108,4 +111,137 @@ export async function setMeta(key: string, value: string): Promise<void> {
     .insert(meta)
     .values({ key, value })
     .onConflictDoUpdate({ target: meta.key, set: { value } });
+}
+
+export const getDailyStatsRange = (startDate: string, endDate: string) =>
+  db
+    .select()
+    .from(dailyStats)
+    .where(and(gte(dailyStats.date, startDate), lte(dailyStats.date, endDate)))
+    .orderBy(asc(dailyStats.date));
+
+export const getDailyStatsForDate = (date: string) =>
+  db.select().from(dailyStats).where(eq(dailyStats.date, date)).limit(1);
+
+export const incrementDhikrCountForDate = (date: string, delta: number) =>
+  db
+    .insert(dailyStats)
+    .values({ date, dhikrCount: delta })
+    .onConflictDoUpdate({
+      target: dailyStats.date,
+      set: { dhikrCount: sql`${dailyStats.dhikrCount} + ${delta}` },
+    });
+
+export const incrementTimeSecondsForDate = (date: string, deltaSeconds: number) =>
+  db
+    .insert(dailyStats)
+    .values({ date, timeSeconds: deltaSeconds })
+    .onConflictDoUpdate({
+      target: dailyStats.date,
+      set: { timeSeconds: sql`${dailyStats.timeSeconds} + ${deltaSeconds}` },
+    });
+
+export const incrementCategoriesCompletedForDate = (date: string) =>
+  db
+    .insert(dailyStats)
+    .values({ date, categoriesCompleted: 1 })
+    .onConflictDoUpdate({
+      target: dailyStats.date,
+      set: {
+        categoriesCompleted: sql`${dailyStats.categoriesCompleted} + 1`,
+      },
+    });
+
+export const getCompletionsInRange = (startDate: string, endDate: string) =>
+  db
+    .select({
+      date: categoryCompletionLog.date,
+      categoryId: categoryCompletionLog.categoryId,
+    })
+    .from(categoryCompletionLog)
+    .where(
+      and(
+        gte(categoryCompletionLog.date, startDate),
+        lte(categoryCompletionLog.date, endDate),
+      ),
+    );
+
+export const getCategoryProgressInRange = (
+  startDate: string,
+  endDate: string,
+) =>
+  db
+    .select({
+      date: dailyCategoryProgress.date,
+      categoryId: dailyCategoryProgress.categoryId,
+      percent: dailyCategoryProgress.percent,
+    })
+    .from(dailyCategoryProgress)
+    .where(
+      and(
+        gte(dailyCategoryProgress.date, startDate),
+        lte(dailyCategoryProgress.date, endDate),
+      ),
+    );
+
+export const upsertCategoryProgress = (
+  date: string,
+  categoryId: string,
+  percent: number,
+) => {
+  const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+  return db
+    .insert(dailyCategoryProgress)
+    .values({ date, categoryId, percent: clamped })
+    .onConflictDoUpdate({
+      target: [dailyCategoryProgress.date, dailyCategoryProgress.categoryId],
+      set: {
+        percent: sql`MAX(${dailyCategoryProgress.percent}, ${clamped})`,
+        updatedAt: sql`(unixepoch())`,
+      },
+    });
+};
+
+export async function backfillCategoryProgressIfNeeded(): Promise<void> {
+  const done = await getMeta('category_progress_backfill_done');
+  if (done === '1') return;
+  const rows = await db
+    .select({
+      date: categoryCompletionLog.date,
+      categoryId: categoryCompletionLog.categoryId,
+    })
+    .from(categoryCompletionLog);
+  for (const r of rows) {
+    await db
+      .insert(dailyCategoryProgress)
+      .values({ date: r.date, categoryId: r.categoryId, percent: 100 })
+      .onConflictDoUpdate({
+        target: [dailyCategoryProgress.date, dailyCategoryProgress.categoryId],
+        set: { percent: 100 },
+      });
+  }
+  await setMeta('category_progress_backfill_done', '1');
+}
+
+export async function logCategoryCompletion(
+  date: string,
+  categoryId: string,
+): Promise<boolean> {
+  const result = await db
+    .insert(categoryCompletionLog)
+    .values({ date, categoryId })
+    .onConflictDoNothing()
+    .returning({ date: categoryCompletionLog.date });
+  return result.length > 0;
+}
+
+export async function backfillLifetimeIfNeeded(): Promise<void> {
+  const done = await getMeta('lifetime_backfill_done');
+  if (done === '1') return;
+  const rows = await db
+    .select({ total: sql<number>`COALESCE(SUM(${counters.count}), 0)` })
+    .from(counters);
+  const total = Number(rows[0]?.total ?? 0);
+  await setMeta('lifetime_total_dhikr', String(total));
+  await setMeta('lifetime_backfill_done', '1');
 }
