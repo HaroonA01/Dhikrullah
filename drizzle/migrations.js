@@ -2,11 +2,15 @@
 
 import journal from './meta/_journal.json';
 import m0000 from './0000_jazzy_chameleon.sql';
+import m0001 from './0001_dazzling_black_bolt.sql';
+import m0002 from './0002_supreme_black_crow.sql';
 
   export default {
     journal,
     migrations: {
-      m0000
+      m0000,
+m0001,
+m0002
     }
   }
   

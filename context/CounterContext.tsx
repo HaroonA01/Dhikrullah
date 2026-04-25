@@ -13,11 +13,22 @@ import {
   getAllCounters,
   getAllDhikrs,
   getCategories,
+  getMeta,
+  incrementCategoriesCompletedForDate,
+  incrementDhikrCountForDate,
+  logCategoryCompletion,
   resetCategoryCounts,
   setCategoryIndex,
   setCount,
+  setMeta,
+  upsertCategoryProgress,
 } from '@/db/queries';
 import { hapticsLight, hapticsStrong } from '@/lib/haptics';
+import {
+  bumpStreak,
+  META_KEY_LIFETIME_DHIKR,
+  todayKey,
+} from '@/lib/stats';
 
 type AllState = Record<string, CounterState>;
 type TickMap = Record<string, number>;
@@ -39,6 +50,7 @@ const CounterContext = createContext<ContextValue | null>(null);
 
 const ADVANCE_DELAY_MS = 3000;
 const WRITE_DEBOUNCE_MS = 150;
+const STATS_FLUSH_DEBOUNCE_MS = 1000;
 
 function toCategory(row: { id: string; label: string; sortOrder: number }): Category {
   return {
@@ -87,6 +99,10 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const countWriteTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const indexWriteTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const advanceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingDhikrCount = useRef(0);
+  const statsFlushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const progressWriteTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingProgress = useRef<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -138,10 +154,13 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const aTimers = advanceTimers.current;
     const cTimers = countWriteTimers.current;
     const iTimers = indexWriteTimers.current;
+    const pTimers = progressWriteTimers.current;
     return () => {
       for (const k of Object.keys(aTimers)) clearTimeout(aTimers[k]);
       for (const k of Object.keys(cTimers)) clearTimeout(cTimers[k]);
       for (const k of Object.keys(iTimers)) clearTimeout(iTimers[k]);
+      for (const k of Object.keys(pTimers)) clearTimeout(pTimers[k]);
+      if (statsFlushTimer.current) clearTimeout(statsFlushTimer.current);
     };
   }, []);
 
@@ -159,6 +178,45 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
     indexWriteTimers.current[categoryId] = setTimeout(() => {
       setCategoryIndex(categoryId, index).catch(() => {});
     }, WRITE_DEBOUNCE_MS);
+  }, []);
+
+  const scheduleStatsFlush = useCallback(() => {
+    if (statsFlushTimer.current) clearTimeout(statsFlushTimer.current);
+    statsFlushTimer.current = setTimeout(async () => {
+      const n = pendingDhikrCount.current;
+      if (n <= 0) return;
+      pendingDhikrCount.current = 0;
+      try {
+        await incrementDhikrCountForDate(todayKey(), n);
+        const lifetime = Number((await getMeta(META_KEY_LIFETIME_DHIKR)) ?? '0');
+        await setMeta(META_KEY_LIFETIME_DHIKR, String(lifetime + n));
+      } catch {}
+    }, STATS_FLUSH_DEBOUNCE_MS);
+  }, []);
+
+  const scheduleProgressWrite = useCallback((categoryId: string, percent: number) => {
+    pendingProgress.current[categoryId] = Math.max(
+      pendingProgress.current[categoryId] ?? 0,
+      percent,
+    );
+    const existing = progressWriteTimers.current[categoryId];
+    if (existing) clearTimeout(existing);
+    progressWriteTimers.current[categoryId] = setTimeout(() => {
+      const p = pendingProgress.current[categoryId] ?? 0;
+      pendingProgress.current[categoryId] = 0;
+      upsertCategoryProgress(todayKey(), categoryId, p).catch(() => {});
+    }, WRITE_DEBOUNCE_MS);
+  }, []);
+
+  const recordCategoryCompletion = useCallback(async (categoryId: string) => {
+    try {
+      const today = todayKey();
+      const firstToday = await logCategoryCompletion(today, categoryId);
+      if (firstToday) {
+        await incrementCategoriesCompletedForDate(today);
+        await bumpStreak();
+      }
+    } catch {}
   }, []);
 
   const bumpConfetti = useCallback((id: string) => {
@@ -209,16 +267,32 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const newCount = currentCount + 1;
         const counts = { ...cur.counts };
 
+        pendingDhikrCount.current += 1;
+        scheduleStatsFlush();
+
         if (newCount >= dhikr.target) {
           counts[dhikr.id] = dhikr.target;
           hapticsStrong();
           bumpConfetti(id);
           if (cur.currentDhikrIndex + 1 < list.length) scheduleAdvance(id);
           scheduleCountWrite(dhikr.id, dhikr.target);
+          if (list.every((d) => (counts[d.id] ?? 0) >= d.target)) {
+            recordCategoryCompletion(id);
+          }
         } else {
           counts[dhikr.id] = newCount;
           hapticsLight();
           scheduleCountWrite(dhikr.id, newCount);
+        }
+
+        let totalTarget = 0;
+        let totalCount = 0;
+        for (const d of list) {
+          totalTarget += d.target;
+          totalCount += Math.min(counts[d.id] ?? 0, d.target);
+        }
+        if (totalTarget > 0) {
+          scheduleProgressWrite(id, (totalCount / totalTarget) * 100);
         }
 
         return {
@@ -227,7 +301,15 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
         };
       });
     },
-    [dhikrsByCategory, bumpConfetti, scheduleAdvance, scheduleCountWrite],
+    [
+      dhikrsByCategory,
+      bumpConfetti,
+      scheduleAdvance,
+      scheduleCountWrite,
+      scheduleStatsFlush,
+      scheduleProgressWrite,
+      recordCategoryCompletion,
+    ],
   );
 
   const decrementCurrent = useCallback(

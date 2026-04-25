@@ -7,6 +7,10 @@ import { db } from './index';
 import migrations from '../drizzle/migrations';
 import { seedIfNeeded } from './seed';
 import { migrateFromAsyncStorageIfNeeded } from './migrateFromAsyncStorage';
+import {
+  backfillCategoryProgressIfNeeded,
+  backfillLifetimeIfNeeded,
+} from './queries';
 
 export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { success, error } = useMigrations(db, migrations);
@@ -20,6 +24,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         await migrateFromAsyncStorageIfNeeded();
         await seedIfNeeded();
+        await backfillLifetimeIfNeeded();
+        await backfillCategoryProgressIfNeeded();
         if (!cancelled) setReady(true);
       } catch (e) {
         if (!cancelled) setBootError(e as Error);
