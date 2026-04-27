@@ -6,7 +6,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { ACCENT, GLASS_BORDER } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
@@ -30,6 +30,7 @@ export function CardProgressRing({
   radius = 16,
   stroke = 3,
 }: Props) {
+  const { palette } = useTheme();
   const perimeter = useMemo(
     () => roundedRectPerimeter(width - stroke, height - stroke, radius),
     [width, height, radius, stroke],
@@ -66,12 +67,12 @@ export function CardProgressRing({
       <Svg width={width} height={height}>
         <Rect
           {...rectProps}
-          stroke={GLASS_BORDER}
+          stroke={palette.glassBorder}
           strokeWidth={stroke}
         />
         <AnimatedRect
           {...rectProps}
-          stroke={ACCENT}
+          stroke={palette.accent}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${perimeter} ${perimeter}`}

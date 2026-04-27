@@ -1,18 +1,14 @@
 import { useWindowDimensions } from 'react-native';
 import Svg, { Defs, Pattern, Rect, Path } from 'react-native-svg';
-import { ACCENT } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 export function GeometricPattern() {
   const { width, height } = useWindowDimensions();
+  const { palette } = useTheme();
 
-  // 48×48 tile: rotated square (diamond) + outer square + cross lines
-  // Creates a classic Islamic lattice motif
   const tilePath = [
-    // Inner diamond (rotated square)
     'M24,4 L44,24 L24,44 L4,24 Z',
-    // Horizontal + vertical cross through centre
     'M0,24 L48,24 M24,0 L24,48',
-    // Corner connections (makes star points)
     'M0,0 L4,24 M48,0 L44,24 M0,48 L4,24 M48,48 L44,24',
   ].join(' ');
 
@@ -28,7 +24,7 @@ export function GeometricPattern() {
         <Pattern id="geo" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
           <Path
             d={tilePath}
-            stroke={ACCENT}
+            stroke={palette.accent}
             strokeWidth="0.8"
             fill="none"
             strokeLinecap="round"

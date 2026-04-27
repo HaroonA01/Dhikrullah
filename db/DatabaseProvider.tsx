@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { GradientBackground } from '@/components/GradientBackground';
-import { TEXT_DARK, TEXT_MID } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 import { db } from './index';
 import migrations from '../drizzle/migrations';
 import { seedIfNeeded } from './seed';
@@ -13,6 +13,7 @@ import {
 } from './queries';
 
 export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { palette } = useTheme();
   const { success, error } = useMigrations(db, migrations);
   const [ready, setReady] = useState(false);
   const [bootError, setBootError] = useState<Error | null>(null);
@@ -41,8 +42,10 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return (
       <View style={styles.root}>
         <GradientBackground />
-        <Text style={styles.errTitle}>Database error</Text>
-        <Text style={styles.errBody}>{err.message}</Text>
+        <Text style={[styles.errTitle, { color: palette.textDark }]}>
+          Database error
+        </Text>
+        <Text style={[styles.errBody, { color: palette.textMid }]}>{err.message}</Text>
       </View>
     );
   }
@@ -51,7 +54,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return (
       <View style={styles.root}>
         <GradientBackground />
-        <Text style={styles.loading}>Loading…</Text>
+        <Text style={[styles.loading, { color: palette.textMid }]}>Loading…</Text>
       </View>
     );
   }
@@ -67,17 +70,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   loading: {
-    color: TEXT_MID,
     fontSize: 14,
   },
   errTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: TEXT_DARK,
     marginBottom: 8,
   },
   errBody: {
-    color: TEXT_MID,
     textAlign: 'center',
     fontSize: 13,
   },

@@ -13,14 +13,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { GlassCard } from '@/components/GlassCard';
-import {
-  ACCENT,
-  ACCENT_LIGHT,
-  GLASS_BORDER,
-  TEXT_DARK,
-  TEXT_DIM,
-  TEXT_MID,
-} from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
@@ -50,18 +43,8 @@ const BOTTOM_LABEL_AREA = 24;
 
 const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTH_ABBREV = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
 function parseDateKey(key: string): Date {
@@ -83,9 +66,10 @@ interface BarProps {
   maxValue: number;
   innerHeight: number;
   baseY: number;
+  fill: string;
 }
 
-function AnimatedBar({ x, width, value, maxValue, innerHeight, baseY }: BarProps) {
+function AnimatedBar({ x, width, value, maxValue, innerHeight, baseY, fill }: BarProps) {
   const ratio = useSharedValue(0);
 
   useEffect(() => {
@@ -104,13 +88,14 @@ function AnimatedBar({ x, width, value, maxValue, innerHeight, baseY }: BarProps
       width={width}
       rx={3}
       ry={3}
-      fill={ACCENT}
+      fill={fill}
       animatedProps={animatedProps}
     />
   );
 }
 
 export function StatBarChart({ title, data, range, onRangeChange }: Props) {
+  const { palette } = useTheme();
   const [chartWidth, setChartWidth] = useState(0);
 
   const onLayout = (e: LayoutChangeEvent) => {
@@ -141,8 +126,8 @@ export function StatBarChart({ title, data, range, onRangeChange }: Props) {
   return (
     <GlassCard style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
-        <View style={styles.toggle}>
+        <Text style={[styles.title, { color: palette.textDark }]}>{title}</Text>
+        <View style={[styles.toggle, { backgroundColor: palette.accentLight }]}>
           {RANGE_ORDER.map((r) => {
             const active = r === range;
             return (
@@ -151,7 +136,7 @@ export function StatBarChart({ title, data, range, onRangeChange }: Props) {
                 onPress={() => onRangeChange(r)}
                 style={({ pressed }) => [
                   styles.toggleBtn,
-                  active && styles.toggleBtnActive,
+                  active && { backgroundColor: palette.accent },
                   pressed && !active && styles.toggleBtnPressed,
                 ]}
                 hitSlop={6}
@@ -159,7 +144,7 @@ export function StatBarChart({ title, data, range, onRangeChange }: Props) {
                 <Text
                   style={[
                     styles.toggleText,
-                    active && styles.toggleTextActive,
+                    { color: active ? '#FFFFFF' : palette.accent },
                   ]}
                 >
                   {RANGE_LABELS[r]}
@@ -178,7 +163,7 @@ export function StatBarChart({ title, data, range, onRangeChange }: Props) {
               y1={baseY}
               x2={chartWidth}
               y2={baseY}
-              stroke={GLASS_BORDER}
+              stroke={palette.glassBorder}
               strokeWidth={1}
             />
             {barLayout.map((b, i) => (
@@ -190,6 +175,7 @@ export function StatBarChart({ title, data, range, onRangeChange }: Props) {
                 maxValue={maxValue}
                 innerHeight={innerHeight}
                 baseY={baseY}
+                fill={palette.accent}
               />
             ))}
           </Svg>
@@ -200,7 +186,10 @@ export function StatBarChart({ title, data, range, onRangeChange }: Props) {
             {barLayout.map((b, i) => (
               <Text
                 key={data[i].date}
-                style={[styles.label, { left: b.slotCenter - 18, width: 36 }]}
+                style={[
+                  styles.label,
+                  { color: palette.textMid, left: b.slotCenter - 18, width: 36 },
+                ]}
                 numberOfLines={1}
               >
                 {labelFor(data[i].date, range)}
@@ -210,7 +199,7 @@ export function StatBarChart({ title, data, range, onRangeChange }: Props) {
         )}
       </View>
 
-      <Text style={styles.footer}>
+      <Text style={[styles.footer, { color: palette.textDim }]}>
         {maxValue === 0
           ? 'No activity yet in this range'
           : `Peak: ${maxValue.toLocaleString()} dhikr`}
@@ -233,12 +222,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: TEXT_DARK,
     letterSpacing: 0.2,
   },
   toggle: {
     flexDirection: 'row',
-    backgroundColor: ACCENT_LIGHT,
     borderRadius: 10,
     padding: 3,
     gap: 2,
@@ -248,20 +235,13 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 7,
   },
-  toggleBtnActive: {
-    backgroundColor: ACCENT,
-  },
   toggleBtnPressed: {
     opacity: 0.7,
   },
   toggleText: {
     fontSize: 11,
     fontWeight: '700',
-    color: ACCENT,
     letterSpacing: 0.5,
-  },
-  toggleTextActive: {
-    color: '#FFFFFF',
   },
   chartWrap: {
     height: CHART_HEIGHT,
@@ -279,13 +259,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 2,
     fontSize: 10,
-    color: TEXT_MID,
     textAlign: 'center',
     fontWeight: '600',
   },
   footer: {
     fontSize: 11,
-    color: TEXT_DIM,
     marginTop: 6,
     textAlign: 'right',
   },

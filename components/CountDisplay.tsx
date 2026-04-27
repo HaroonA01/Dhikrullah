@@ -7,7 +7,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { ACCENT, TEXT_DIM } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Props {
   count: number;
@@ -15,6 +15,7 @@ interface Props {
 }
 
 export function CountDisplay({ count, target }: Props) {
+  const { palette } = useTheme();
   const scale = useSharedValue(1);
 
   useEffect(() => {
@@ -30,9 +31,9 @@ export function CountDisplay({ count, target }: Props) {
     <View style={styles.wrap}>
       <Animated.View style={animStyle}>
         <Text style={styles.row}>
-          <Text style={styles.count}>{count}</Text>
-          <Text style={styles.sep}> / </Text>
-          <Text style={styles.target}>{target}</Text>
+          <Text style={[styles.count, { color: palette.accent }]}>{count}</Text>
+          <Text style={[styles.sep, { color: palette.textDim }]}> / </Text>
+          <Text style={[styles.target, { color: palette.textDim }]}>{target}</Text>
         </Text>
       </Animated.View>
     </View>
@@ -52,16 +53,13 @@ const styles = StyleSheet.create({
   count: {
     fontSize: 22,
     fontWeight: '700',
-    color: ACCENT,
   },
   sep: {
     fontSize: 18,
-    color: TEXT_DIM,
     fontWeight: '400',
   },
   target: {
     fontSize: 18,
-    color: TEXT_DIM,
     fontWeight: '500',
   },
 });

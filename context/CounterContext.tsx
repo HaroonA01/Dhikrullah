@@ -44,6 +44,7 @@ interface ContextValue {
   nextDhikr: (id: CategoryId) => void;
   prevDhikr: (id: CategoryId) => void;
   resetAll: (id: CategoryId) => void;
+  seekToDhikr: (id: CategoryId, dhikrId: string) => void;
 }
 
 const CounterContext = createContext<ContextValue | null>(null);
@@ -363,6 +364,23 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [scheduleIndexWrite, clearAdvance],
   );
 
+  const seekToDhikr = useCallback(
+    (id: CategoryId, dhikrId: string) => {
+      clearAdvance(id);
+      setStates((prev) => {
+        const list = dhikrsByCategory[id] ?? [];
+        const idx = list.findIndex((d) => d.id === dhikrId);
+        if (idx < 0) return prev;
+        const cur = prev[id];
+        if (!cur) return prev;
+        if (cur.currentDhikrIndex === idx) return prev;
+        scheduleIndexWrite(id, idx);
+        return { ...prev, [id]: { ...cur, currentDhikrIndex: idx } };
+      });
+    },
+    [dhikrsByCategory, scheduleIndexWrite, clearAdvance],
+  );
+
   const resetAll = useCallback(
     (id: CategoryId) => {
       clearAdvance(id);
@@ -390,6 +408,7 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
         nextDhikr,
         prevDhikr,
         resetAll,
+        seekToDhikr,
       }}
     >
       {children}

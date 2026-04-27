@@ -5,7 +5,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { ACCENT, GLASS_BG, GLASS_BORDER, TEXT_MID } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Props {
   percent: number;
@@ -14,6 +14,7 @@ interface Props {
 }
 
 export function ProgressBar({ percent, completed, total }: Props) {
+  const { palette } = useTheme();
   const progress = useSharedValue(percent);
 
   useEffect(() => {
@@ -28,14 +29,23 @@ export function ProgressBar({ percent, completed, total }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.track}>
-        <Animated.View style={[styles.fill, fillStyle]} />
+      <View
+        style={[
+          styles.track,
+          { backgroundColor: palette.glassBg, borderColor: palette.glassBorder },
+        ]}
+      >
+        <Animated.View
+          style={[styles.fill, { backgroundColor: palette.accent }, fillStyle]}
+        />
       </View>
       <View style={styles.labelRow}>
-        <Text style={styles.labelLeft}>
+        <Text style={[styles.labelLeft, { color: palette.textMid }]}>
           {showCounts ? `${completed} / ${total}` : ''}
         </Text>
-        <Text style={styles.labelRight}>{Math.round(percent)}%</Text>
+        <Text style={[styles.labelRight, { color: palette.textMid }]}>
+          {Math.round(percent)}%
+        </Text>
       </View>
     </View>
   );
@@ -50,14 +60,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 10,
     borderRadius: 5,
-    backgroundColor: GLASS_BG,
     borderWidth: 1,
-    borderColor: GLASS_BORDER,
     overflow: 'hidden',
   },
   fill: {
     height: '100%',
-    backgroundColor: ACCENT,
     borderRadius: 5,
   },
   labelRow: {
@@ -68,13 +75,11 @@ const styles = StyleSheet.create({
   },
   labelLeft: {
     fontSize: 11,
-    color: TEXT_MID,
     fontWeight: '600',
     letterSpacing: 0.3,
   },
   labelRight: {
     fontSize: 12,
-    color: TEXT_MID,
     fontWeight: '700',
     letterSpacing: 0.3,
   },

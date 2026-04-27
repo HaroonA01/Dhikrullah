@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { LucideProps } from 'lucide-react-native';
-import { ACCENT, GLASS_BG, GLASS_BORDER } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 import { hapticsLight } from '@/lib/haptics';
 
 interface Props {
@@ -27,6 +27,7 @@ export function ActionPill({
   active = false,
   iconFill = false,
 }: Props) {
+  const { palette } = useTheme();
   const scale = useSharedValue(1);
 
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -47,13 +48,18 @@ export function ActionPill({
         onPress();
       }}
       disabled={disabled}
-      style={[styles.btn, disabled && styles.disabled, style]}
+      style={[
+        styles.btn,
+        { backgroundColor: palette.glassBg, borderColor: palette.glassBorder },
+        disabled && styles.disabled,
+        style,
+      ]}
     >
       <Icon
         size={22}
-        color={ACCENT}
+        color={palette.accent}
         strokeWidth={2}
-        fill={showFill ? ACCENT : 'none'}
+        fill={showFill ? palette.accent : 'none'}
       />
     </AnimatedPressable>
   );
@@ -66,9 +72,7 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GLASS_BG,
     borderWidth: 1,
-    borderColor: GLASS_BORDER,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,

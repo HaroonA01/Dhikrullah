@@ -7,7 +7,7 @@ import Animated, {
   withDelay,
   withSequence,
 } from 'react-native-reanimated';
-import { ACCENT, TEXT_DARK } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 const LETTER_APPEAR_DUR = 300;
 const LETTER_DISAPPEAR_DUR = 400;
@@ -24,7 +24,15 @@ function mulberry32(a: number) {
   };
 }
 
-function LetterParticle({ fireAt, seed }: { fireAt: number; seed: number }) {
+function LetterParticle({
+  fireAt,
+  seed,
+  color,
+}: {
+  fireAt: number;
+  seed: number;
+  color: string;
+}) {
   const { dx, dy, size, delay } = useMemo(() => {
     const r = mulberry32(seed);
     return {
@@ -70,7 +78,7 @@ function LetterParticle({ fireAt, seed }: { fireAt: number; seed: number }) {
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: ACCENT,
+          backgroundColor: color,
         },
         style,
       ]}
@@ -87,6 +95,7 @@ interface Props {
 }
 
 export function DustChar({ char, index, appearDelay, holdDur, disappearStart }: Props) {
+  const { palette } = useTheme();
   const opacity = useSharedValue(0);
   const ty = useSharedValue(14);
 
@@ -119,10 +128,17 @@ export function DustChar({ char, index, appearDelay, holdDur, disappearStart }: 
 
   return (
     <View style={styles.wrap}>
-      <Animated.Text style={[styles.char, letterStyle]}>{char}</Animated.Text>
+      <Animated.Text style={[styles.char, { color: palette.textDark }, letterStyle]}>
+        {char}
+      </Animated.Text>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         {particleSeeds.map((seed) => (
-          <LetterParticle key={seed} fireAt={disappearStart} seed={seed} />
+          <LetterParticle
+            key={seed}
+            fireAt={disappearStart}
+            seed={seed}
+            color={palette.accent}
+          />
         ))}
       </View>
     </View>
@@ -136,7 +152,6 @@ const styles = StyleSheet.create({
   char: {
     fontSize: 44,
     fontWeight: '700',
-    color: TEXT_DARK,
     letterSpacing: 1,
   },
 });

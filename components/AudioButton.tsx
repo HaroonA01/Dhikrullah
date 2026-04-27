@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { Audio, AVPlaybackSource } from 'expo-av';
 import { Pause, Volume2, VolumeX } from 'lucide-react-native';
-import { ACCENT, GLASS_BG, GLASS_BORDER, TEXT_DIM } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Props {
   source?: AVPlaybackSource;
@@ -10,6 +10,7 @@ interface Props {
 }
 
 export function AudioButton({ source, dhikrId }: Props) {
+  const { palette } = useTheme();
   const [playing, setPlaying] = useState(false);
   const soundRef = useRef<Audio.Sound | null>(null);
 
@@ -65,14 +66,18 @@ export function AudioButton({ source, dhikrId }: Props) {
 
   const disabled = !source;
   const Icon = disabled ? VolumeX : playing ? Pause : Volume2;
-  const color = disabled ? TEXT_DIM : ACCENT;
+  const color = disabled ? palette.textDim : palette.accent;
 
   return (
     <Pressable
       onPress={toggle}
       disabled={disabled}
       hitSlop={10}
-      style={[styles.btn, disabled && styles.disabled]}
+      style={[
+        styles.btn,
+        { backgroundColor: palette.glassBg, borderColor: palette.glassBorder },
+        disabled && styles.disabled,
+      ]}
     >
       <Icon size={18} color={color} strokeWidth={2} />
     </Pressable>
@@ -86,9 +91,7 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GLASS_BG,
     borderWidth: 1,
-    borderColor: GLASS_BORDER,
   },
   disabled: {
     opacity: 0.5,

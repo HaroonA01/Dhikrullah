@@ -1,5 +1,5 @@
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import { glassCard } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Props {
   children: React.ReactNode;
@@ -7,12 +7,27 @@ interface Props {
 }
 
 export function GlassCard({ children, style }: Props) {
-  return <View style={[styles.card, style]}>{children}</View>;
+  const { palette } = useTheme();
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: palette.glassBg,
+          borderColor: palette.glassBorder,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   card: {
-    ...glassCard,
+    borderWidth: 1,
+    borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,

@@ -9,7 +9,7 @@ import {
 import { Check } from 'lucide-react-native';
 import type { Category } from '@/types';
 import { GlassCard } from '@/components/GlassCard';
-import { ACCENT, TEXT_DARK, TEXT_DIM, TEXT_MID } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Props {
   categories: Category[];
@@ -20,28 +20,10 @@ interface Props {
 
 const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MONTH_NAMES = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
-const WEEKDAY_NAMES_LONG = [
-  'Mon',
-  'Tue',
-  'Wed',
-  'Thu',
-  'Fri',
-  'Sat',
-  'Sun',
-];
+const WEEKDAY_NAMES_LONG = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const LABEL_COL_WIDTH = 92;
 const CELL_GAP = 4;
@@ -58,13 +40,19 @@ function formatDetailDate(key: string, weekdayIndex: number): string {
   return `${WEEKDAY_NAMES_LONG[weekdayIndex]}, ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
 }
 
-function tintForPercent(percent: number): string | null {
+function alphaHex(alpha: number): string {
+  return Math.round(Math.max(0, Math.min(1, alpha)) * 255)
+    .toString(16)
+    .padStart(2, '0');
+}
+
+function tintForPercent(percent: number, accent: string): string | null {
   if (percent <= 0) return null;
-  if (percent >= 100) return ACCENT;
+  if (percent >= 100) return accent;
   const min = 0.12;
   const max = 0.95;
   const alpha = min + (max - min) * (percent / 100);
-  return `rgba(45,106,79,${alpha.toFixed(3)})`;
+  return `${accent}${alphaHex(alpha)}`;
 }
 
 export function CategoryHeatmap({
@@ -73,6 +61,7 @@ export function CategoryHeatmap({
   todayKey,
   percents,
 }: Props) {
+  const { palette } = useTheme();
   const [cardWidth, setCardWidth] = useState(0);
   const [selected, setSelected] = useState<{
     categoryId: string;
@@ -113,8 +102,10 @@ export function CategoryHeatmap({
   return (
     <GlassCard style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>This Week</Text>
-        <Text style={styles.subtitle}>Category progress</Text>
+        <Text style={[styles.title, { color: palette.textDark }]}>This Week</Text>
+        <Text style={[styles.subtitle, { color: palette.textMid }]}>
+          Category progress
+        </Text>
       </View>
 
       <View style={styles.grid} onLayout={onLayout}>
@@ -133,7 +124,7 @@ export function CategoryHeatmap({
                 <Text
                   style={[
                     styles.weekdayText,
-                    isToday && styles.weekdayTextToday,
+                    { color: isToday ? palette.accent : palette.textDark },
                   ]}
                 >
                   {lbl}
@@ -146,7 +137,7 @@ export function CategoryHeatmap({
         {sortedCategories.map((cat) => (
           <View key={cat.id} style={styles.row}>
             <Text
-              style={styles.rowLabel}
+              style={[styles.rowLabel, { color: palette.textMid }]}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
@@ -155,7 +146,7 @@ export function CategoryHeatmap({
             {weekDates.map((date, i) => {
               const key = `${date}|${cat.id}`;
               const percent = percents.get(key) ?? 0;
-              const tint = tintForPercent(percent);
+              const tint = tintForPercent(percent, palette.accent);
               const isComplete = percent >= 100;
               const isFuture = date > todayKey;
               const isSelected =
@@ -183,9 +174,15 @@ export function CategoryHeatmap({
                     },
                     tint
                       ? { backgroundColor: tint }
-                      : styles.cellEmpty,
-                    isSelected && styles.cellSelected,
-                    isFuture && styles.cellFuture,
+                      : {
+                          backgroundColor: 'transparent',
+                          borderWidth: 1,
+                          borderColor: palette.glassBorder,
+                        },
+                    isSelected && {
+                      borderWidth: 2,
+                      borderColor: palette.accent,
+                    },
                     pressed && !isFuture && styles.cellPressed,
                   ]}
                 >
@@ -203,7 +200,7 @@ export function CategoryHeatmap({
         ))}
       </View>
 
-      <Text style={styles.detail}>{detailText}</Text>
+      <Text style={[styles.detail, { color: palette.textDim }]}>{detailText}</Text>
     </GlassCard>
   );
 }
@@ -219,12 +216,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: TEXT_DARK,
     letterSpacing: 0.2,
   },
   subtitle: {
     fontSize: 11,
-    color: TEXT_MID,
     marginTop: 2,
   },
   grid: {
@@ -242,11 +237,7 @@ const styles = StyleSheet.create({
   weekdayText: {
     fontSize: 12,
     fontWeight: '700',
-    color: TEXT_DARK,
     letterSpacing: 0.5,
-  },
-  weekdayTextToday: {
-    color: ACCENT,
   },
   row: {
     flexDirection: 'row',
@@ -258,7 +249,6 @@ const styles = StyleSheet.create({
     paddingRight: 8,
     textAlign: 'right',
     fontSize: 11,
-    color: TEXT_MID,
     fontWeight: '600',
   },
   cellBase: {
@@ -266,23 +256,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cellEmpty: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(26,26,46,0.13)',
-  },
-  cellFuture: {},
-  cellSelected: {
-    borderWidth: 2,
-    borderColor: ACCENT,
-  },
   cellPressed: {
     opacity: 0.7,
   },
   detail: {
     marginTop: 12,
     fontSize: 11,
-    color: TEXT_DIM,
     textAlign: 'center',
   },
 });

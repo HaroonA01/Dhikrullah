@@ -1,16 +1,16 @@
 import { useEffect } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  Easing,
   SharedValue,
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
-  withSequence,
   withTiming,
   interpolate,
 } from 'react-native-reanimated';
 import { ChevronUp } from 'lucide-react-native';
-import { TEXT_DIM, ACCENT } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Props {
   progress: SharedValue<number>;
@@ -18,18 +18,19 @@ interface Props {
 }
 
 export function SwipeChevron({ progress, bottomOffset }: Props) {
+  const { palette } = useTheme();
   const bounce = useSharedValue(0);
 
   useEffect(() => {
     bounce.value = withRepeat(
-      withSequence(
-        withTiming(-9, { duration: 550 }),
-        withTiming(0, { duration: 550 }),
-      ),
+      withTiming(-14, {
+        duration: 620,
+        easing: Easing.inOut(Easing.cubic),
+      }),
       -1,
-      false,
+      true,
     );
-  }, []);
+  }, [bounce]);
 
   const containerStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 0.35], [1, 0]),
@@ -38,8 +39,16 @@ export function SwipeChevron({ progress, bottomOffset }: Props) {
 
   return (
     <Animated.View style={[styles.wrap, { bottom: bottomOffset + 16 }, containerStyle]}>
-      <ChevronUp size={22} color={ACCENT} strokeWidth={2} />
-      <Text style={styles.label}>swipe up</Text>
+      <View style={styles.chevronStack}>
+        <ChevronUp size={22} color={palette.accent} strokeWidth={2.2} />
+        <ChevronUp
+          size={22}
+          color={palette.accent}
+          strokeWidth={2.2}
+          style={styles.chevronTop}
+        />
+      </View>
+      <Text style={[styles.label, { color: palette.textDim }]}>swipe up</Text>
     </Animated.View>
   );
 }
@@ -50,11 +59,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
-    gap: 4,
+    gap: 2,
+  },
+  chevronStack: {
+    alignItems: 'center',
+  },
+  chevronTop: {
+    marginTop: -14,
   },
   label: {
     fontSize: 11,
-    color: TEXT_DIM,
     letterSpacing: 1,
   },
 });

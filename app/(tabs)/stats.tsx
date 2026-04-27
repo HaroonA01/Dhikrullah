@@ -18,6 +18,7 @@ import {
 } from '@/components/StatBarChart';
 import { CategoryHeatmap } from '@/components/CategoryHeatmap';
 import { useDhikrContent } from '@/context/CounterContext';
+import { useTheme } from '@/context/ThemeContext';
 import {
   getCategoryProgressInRange,
   getDailyStatsForDate,
@@ -35,7 +36,6 @@ import {
   monthEndDateKey,
   todayKey,
 } from '@/lib/stats';
-import { ACCENT, TEXT_DARK } from '@/constants/theme';
 
 const MONTHS_RANGE = 6;
 
@@ -62,6 +62,7 @@ async function buildChartData(range: ChartRange): Promise<ChartDatum[]> {
 
 export default function StatsScreen() {
   const insets = useSafeAreaInsets();
+  const { palette } = useTheme();
   const { categories } = useDhikrContent();
   const [streak, setStreak] = useState(0);
   const [lifetimeDhikr, setLifetimeDhikr] = useState(0);
@@ -127,8 +128,8 @@ export default function StatsScreen() {
       <GradientBackground />
 
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.wordmark}>Dhikrullah</Text>
-        <Text style={styles.title}>Stats</Text>
+        <Text style={[styles.wordmark, { color: palette.accent }]}>Dhikrullah</Text>
+        <Text style={[styles.title, { color: palette.textDark }]}>Stats</Text>
       </View>
 
       <ScrollView
@@ -141,8 +142,8 @@ export default function StatsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={ACCENT}
-            colors={[ACCENT]}
+            tintColor={palette.accent}
+            colors={[palette.accent]}
           />
         }
       >
@@ -203,7 +204,6 @@ const styles = StyleSheet.create({
   },
   wordmark: {
     fontSize: 12,
-    color: ACCENT,
     letterSpacing: 1.5,
     fontWeight: '600',
     opacity: 0.8,
@@ -211,7 +211,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '700',
-    color: TEXT_DARK,
     marginTop: 2,
   },
   list: {
