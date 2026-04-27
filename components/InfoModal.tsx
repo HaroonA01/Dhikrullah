@@ -1,6 +1,6 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { X } from 'lucide-react-native';
-import { ACCENT, GLASS_BORDER, TEXT_DARK, TEXT_MID } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Props {
   visible: boolean;
@@ -11,17 +11,26 @@ interface Props {
 }
 
 export function InfoModal({ visible, description, reference, grade, onClose }: Props) {
+  const { palette } = useTheme();
   const hasDescription = !!description && description.trim().length > 0;
   const hasReference = !!reference && reference.trim().length > 0;
   const hasGrade = !!grade && grade.trim().length > 0;
   const hasAny = hasDescription || hasReference || hasGrade;
 
+  const cardBg = palette.scheme === 'dark' ? palette.bgMid : '#FFFFFF';
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.card} onPress={() => {}}>
+        <Pressable
+          style={[
+            styles.card,
+            { backgroundColor: cardBg, borderColor: palette.glassBorder },
+          ]}
+          onPress={() => {}}
+        >
           <Pressable style={styles.close} onPress={onClose} hitSlop={12}>
-            <X size={18} color={TEXT_MID} strokeWidth={2} />
+            <X size={18} color={palette.textMid} strokeWidth={2} />
           </Pressable>
 
           <ScrollView
@@ -29,27 +38,34 @@ export function InfoModal({ visible, description, reference, grade, onClose }: P
             showsVerticalScrollIndicator={false}
           >
             {!hasAny && (
-              <Text style={styles.empty}>No additional information yet.</Text>
+              <Text
+                style={[
+                  styles.empty,
+                  { color: palette.textMid },
+                ]}
+              >
+                No additional information yet.
+              </Text>
             )}
 
             {hasDescription && (
               <View style={styles.section}>
-                <Text style={styles.label}>Description</Text>
-                <Text style={styles.value}>{description}</Text>
+                <Text style={[styles.label, { color: palette.accent }]}>Description</Text>
+                <Text style={[styles.value, { color: palette.textDark }]}>{description}</Text>
               </View>
             )}
 
             {hasReference && (
               <View style={styles.section}>
-                <Text style={styles.label}>Reference</Text>
-                <Text style={styles.value}>{reference}</Text>
+                <Text style={[styles.label, { color: palette.accent }]}>Reference</Text>
+                <Text style={[styles.value, { color: palette.textDark }]}>{reference}</Text>
               </View>
             )}
 
             {hasGrade && (
               <View style={styles.section}>
-                <Text style={styles.label}>Grade</Text>
-                <Text style={styles.value}>{grade}</Text>
+                <Text style={[styles.label, { color: palette.accent }]}>Grade</Text>
+                <Text style={[styles.value, { color: palette.textDark }]}>{grade}</Text>
               </View>
             )}
           </ScrollView>
@@ -71,10 +87,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 360,
     maxHeight: '70%',
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: GLASS_BORDER,
     paddingHorizontal: 22,
     paddingVertical: 24,
     shadowColor: '#000',
@@ -100,17 +114,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: ACCENT,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
   value: {
     fontSize: 15,
-    color: TEXT_DARK,
     lineHeight: 22,
   },
   empty: {
-    color: TEXT_MID,
     fontSize: 14,
     fontStyle: 'italic',
     textAlign: 'center',

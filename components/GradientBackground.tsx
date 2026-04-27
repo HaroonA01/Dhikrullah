@@ -1,11 +1,12 @@
 import { StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BG_TOP, BG_MID, BG_BOTTOM } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 export function GradientBackground() {
+  const { palette } = useTheme();
   return (
     <LinearGradient
-      colors={[BG_TOP, BG_MID, BG_BOTTOM]}
+      colors={[palette.bgTop, palette.bgMid, palette.bgBottom]}
       locations={[0, 0.5, 1]}
       style={StyleSheet.absoluteFill}
     />

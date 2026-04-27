@@ -12,27 +12,20 @@ import { GradientBackground } from '@/components/GradientBackground';
 import { GlassCard } from '@/components/GlassCard';
 import { DustChar } from '@/components/DustChar';
 import { useRandomQuote } from '@/hooks/useRandomQuote';
-import { ACCENT, TEXT_DARK, TEXT_MID } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
-// ── timing constants ────────────────────────────────────────────────
 const APPEAR_DUR = 300;
-const DISAPPEAR_DUR = 400;
 const STAGGER = 60;
 const DIS_STAGGER = 35;
 const EN_START = 150;
-const EN_N = 10; // "Dhikrullah"
+const EN_N = 10;
 
-// Last English letter fully in: 150 + 9*60 + 300 = 990
-// Hold 350ms → EN_DISAPPEAR_START = 1340
 const EN_DISAPPEAR_START = EN_START + (EN_N - 1) * STAGGER + APPEAR_DUR + 350;
 
-// Last letter disappear ends: 1340 + 9*35 + 400 = 2055
-// Particles drift ~750ms past fade → settled by ~2800
 const AR_START = 2500;
 const AR_APPEAR_DUR = 500;
 const AR_HOLD = 500;
 const AR_DISAPPEAR_DUR = 400;
-// Arabic done: 2500 + 500 + 500 + 400 = 3900
 
 const NAVIGATE_AT = 4000;
 
@@ -44,6 +37,7 @@ function navigate() {
 }
 
 export default function Loading() {
+  const { palette } = useTheme();
   const quote = useRandomQuote();
   const arabicOpacity = useSharedValue(0);
   const arabicTy = useSharedValue(14);
@@ -102,16 +96,27 @@ export default function Loading() {
             })}
           </View>
 
-          <Animated.Text style={[styles.arabic, StyleSheet.absoluteFillObject, arabicStyle]}>
+          <Animated.Text
+            style={[
+              styles.arabic,
+              { color: palette.accent },
+              StyleSheet.absoluteFillObject,
+              arabicStyle,
+            ]}
+          >
             {ARABIC_TEXT}
           </Animated.Text>
         </View>
 
         <Animated.View style={[styles.quoteWrap, quoteStyle]}>
           <GlassCard style={styles.quoteCard}>
-            <Text style={styles.quoteText}>&ldquo;{quote.text}&rdquo;</Text>
+            <Text style={[styles.quoteText, { color: palette.textDark }]}>
+              &ldquo;{quote.text}&rdquo;
+            </Text>
             {quote.source ? (
-              <Text style={styles.quoteSource}>— {quote.source}</Text>
+              <Text style={[styles.quoteSource, { color: palette.textMid }]}>
+                — {quote.source}
+              </Text>
             ) : null}
           </GlassCard>
         </Animated.View>
@@ -146,7 +151,6 @@ const styles = StyleSheet.create({
   arabic: {
     fontSize: 32,
     fontWeight: '500',
-    color: ACCENT,
     textAlign: 'center',
     includeFontPadding: false,
   },
@@ -157,22 +161,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 20,
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderWidth: 0,
-    borderColor: 'transparent',
   },
   quoteText: {
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 26,
-    color: TEXT_DARK,
     opacity: 0.85,
     fontStyle: 'italic',
   },
   quoteSource: {
     fontSize: 12,
     marginTop: 10,
-    color: TEXT_MID,
     textAlign: 'center',
   },
 });

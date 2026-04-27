@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
   withDelay,
 } from 'react-native-reanimated';
-import { ACCENT } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Particle {
   id: number;
@@ -20,7 +20,7 @@ interface Particle {
   maxOpacity: number;
 }
 
-function ParticleDot({ particle }: { particle: Particle }) {
+function ParticleDot({ particle, color }: { particle: Particle; color: string }) {
   const opacity = useSharedValue(particle.minOpacity);
 
   useEffect(() => {
@@ -43,6 +43,7 @@ function ParticleDot({ particle }: { particle: Particle }) {
     <Animated.View
       style={[
         styles.dot,
+        { backgroundColor: color },
         animStyle,
         {
           left: `${particle.x}%`,
@@ -61,9 +62,9 @@ interface Props {
 }
 
 export function ParticleField({ count = 25 }: Props) {
+  const { palette } = useTheme();
   const particles = useMemo<Particle[]>(() => {
     const list: Particle[] = [];
-    // Use a simple deterministic pseudo-random to avoid hydration issues
     let seed = 42;
     const rand = () => {
       seed = (seed * 1664525 + 1013904223) & 0xffffffff;
@@ -86,7 +87,7 @@ export function ParticleField({ count = 25 }: Props) {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {particles.map(p => (
-        <ParticleDot key={p.id} particle={p} />
+        <ParticleDot key={p.id} particle={p} color={palette.accent} />
       ))}
     </View>
   );
@@ -95,6 +96,5 @@ export function ParticleField({ count = 25 }: Props) {
 const styles = StyleSheet.create({
   dot: {
     position: 'absolute',
-    backgroundColor: ACCENT,
   },
 });

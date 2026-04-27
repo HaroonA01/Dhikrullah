@@ -1,20 +1,22 @@
 import { Tabs } from 'expo-router';
 import { Home, BarChart2, Share2, Settings, Heart } from 'lucide-react-native';
-import { ACCENT, TEXT_DIM } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function TabsLayout() {
+  const { palette } = useTheme();
+  const isDark = palette.scheme === 'dark';
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: 'rgba(255,255,255,0.88)',
-          borderTopColor: 'rgba(0,0,0,0.08)',
+          backgroundColor: palette.bgMid,
+          borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
           borderTopWidth: 1,
           position: 'absolute',
         },
-        tabBarActiveTintColor: ACCENT,
-        tabBarInactiveTintColor: TEXT_DIM,
+        tabBarActiveTintColor: palette.accent,
+        tabBarInactiveTintColor: palette.textDim,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
       }}
     >

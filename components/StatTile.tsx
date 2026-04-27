@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { GlassCard } from '@/components/GlassCard';
-import { ACCENT, TEXT_DARK, TEXT_DIM, TEXT_MID } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Props {
   Icon: LucideIcon;
@@ -12,17 +12,26 @@ interface Props {
 }
 
 export function StatTile({ Icon, label, value, valueSuffix, caption }: Props) {
+  const { palette } = useTheme();
   return (
     <GlassCard style={styles.card}>
       <View style={styles.iconRow}>
-        <Icon size={20} color={ACCENT} strokeWidth={1.5} />
+        <Icon size={20} color={palette.accent} strokeWidth={1.5} />
       </View>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit>
+      <Text style={[styles.label, { color: palette.textMid }]}>{label}</Text>
+      <Text
+        style={[styles.value, { color: palette.textDark }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         {value}
-        {valueSuffix ? <Text style={styles.valueSuffix}>{valueSuffix}</Text> : null}
+        {valueSuffix ? (
+          <Text style={{ color: palette.accent }}>{valueSuffix}</Text>
+        ) : null}
       </Text>
-      {caption ? <Text style={styles.caption}>{caption}</Text> : null}
+      {caption ? (
+        <Text style={[styles.caption, { color: palette.textDim }]}>{caption}</Text>
+      ) : null}
     </GlassCard>
   );
 }
@@ -41,7 +50,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '600',
-    color: TEXT_MID,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginBottom: 6,
@@ -49,15 +57,10 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 26,
     fontWeight: '700',
-    color: TEXT_DARK,
     letterSpacing: -0.3,
-  },
-  valueSuffix: {
-    color: ACCENT,
   },
   caption: {
     fontSize: 10,
-    color: TEXT_DIM,
     marginTop: 6,
     lineHeight: 13,
   },

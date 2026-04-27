@@ -22,6 +22,7 @@ import { CategoryId } from '@/types';
 import { useDhikrContent } from '@/context/CounterContext';
 import { useCounter } from '@/hooks/useCounter';
 import { useFavourites } from '@/context/FavouritesContext';
+import { useTheme } from '@/context/ThemeContext';
 import { resolveAudio } from '@/db/audioMap';
 import {
   getMeta,
@@ -39,18 +40,12 @@ import { InfoModal } from '@/components/InfoModal';
 import { AudioButton } from '@/components/AudioButton';
 import { Confetti } from '@/components/Confetti';
 import { CardProgressRing } from '@/components/CardProgressRing';
-import {
-  ACCENT,
-  GLASS_BG,
-  GLASS_BORDER,
-  TEXT_DARK,
-  TEXT_MID,
-} from '@/constants/theme';
 
 export default function CounterScreen() {
   const { category } = useLocalSearchParams<{ category: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { palette } = useTheme();
   const categoryId = category as CategoryId;
   const { categories, dhikrsByCategory } = useDhikrContent();
   const meta = categories.find((c) => c.id === categoryId);
@@ -115,7 +110,7 @@ export default function CounterScreen() {
     return (
       <View style={styles.fallback}>
         <GradientBackground />
-        <Text style={{ color: TEXT_MID }}>Loading…</Text>
+        <Text style={{ color: palette.textMid }}>Loading…</Text>
       </View>
     );
   }
@@ -124,7 +119,9 @@ export default function CounterScreen() {
     return (
       <View style={styles.fallback}>
         <GradientBackground />
-        <Text style={{ color: TEXT_MID }}>Unknown category: {String(category)}</Text>
+        <Text style={{ color: palette.textMid }}>
+          Unknown category: {String(category)}
+        </Text>
       </View>
     );
   }
@@ -157,12 +154,16 @@ export default function CounterScreen() {
           style={styles.headerBtn}
           hitSlop={12}
         >
-          <ChevronLeft size={24} color={ACCENT} strokeWidth={2} />
+          <ChevronLeft size={24} color={palette.accent} strokeWidth={2} />
         </Pressable>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerBrand}>DHIKRULLAH</Text>
-          <Text style={styles.headerLabel}>{meta.label}</Text>
-          <Text style={styles.headerSub}>
+          <Text style={[styles.headerBrand, { color: palette.accent }]}>
+            DHIKRULLAH
+          </Text>
+          <Text style={[styles.headerLabel, { color: palette.textDark }]}>
+            {meta.label}
+          </Text>
+          <Text style={[styles.headerSub, { color: palette.textMid }]}>
             {state.currentDhikrIndex + 1} of {dhikrs.length}
           </Text>
         </View>
@@ -188,10 +189,16 @@ export default function CounterScreen() {
                 <GlassCard style={styles.card}>
                   <Pressable
                     onPress={() => setInfoOpen(true)}
-                    style={styles.cornerLeft}
+                    style={[
+                      styles.cornerLeft,
+                      {
+                        backgroundColor: palette.glassBg,
+                        borderColor: palette.glassBorder,
+                      },
+                    ]}
                     hitSlop={10}
                   >
-                    <Info size={18} color={ACCENT} strokeWidth={2} />
+                    <Info size={18} color={palette.accent} strokeWidth={2} />
                   </Pressable>
                   <View style={styles.cornerRight}>
                     <AudioButton
@@ -214,7 +221,7 @@ export default function CounterScreen() {
             </View>
           </Animated.View>
         ) : (
-          <Text style={{ color: TEXT_MID, textAlign: 'center' }}>
+          <Text style={{ color: palette.textMid, textAlign: 'center' }}>
             No dhikrs in this category.
           </Text>
         )}
@@ -286,19 +293,16 @@ const styles = StyleSheet.create({
   headerBrand: {
     fontSize: 10,
     fontWeight: '700',
-    color: ACCENT,
     letterSpacing: 2,
     marginBottom: 2,
   },
   headerLabel: {
     fontSize: 20,
     fontWeight: '700',
-    color: TEXT_DARK,
     letterSpacing: -0.3,
   },
   headerSub: {
     fontSize: 11,
-    color: TEXT_MID,
     marginTop: 2,
     letterSpacing: 0.5,
   },
@@ -320,7 +324,6 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 24,
     paddingHorizontal: 12,
-    backgroundColor: 'rgba(255,255,255,0.8)',
   },
   cornerLeft: {
     position: 'absolute',
@@ -331,9 +334,7 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GLASS_BG,
     borderWidth: 1,
-    borderColor: GLASS_BORDER,
     zIndex: 2,
   },
   cornerRight: {
