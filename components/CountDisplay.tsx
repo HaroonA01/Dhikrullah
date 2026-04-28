@@ -12,9 +12,10 @@ import { useTheme } from '@/context/ThemeContext';
 interface Props {
   count: number;
   target: number;
+  reachedTarget?: boolean;
 }
 
-export function CountDisplay({ count, target }: Props) {
+export function CountDisplay({ count, target, reachedTarget = false }: Props) {
   const { palette } = useTheme();
   const scale = useSharedValue(1);
 
@@ -27,13 +28,17 @@ export function CountDisplay({ count, target }: Props) {
 
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
+  const denomOpacity = reachedTarget ? 1 : 0.5;
+
   return (
     <View style={styles.wrap}>
       <Animated.View style={animStyle}>
         <Text style={styles.row}>
           <Text style={[styles.count, { color: palette.accent }]}>{count}</Text>
-          <Text style={[styles.sep, { color: palette.textDim }]}> / </Text>
-          <Text style={[styles.target, { color: palette.textDim }]}>{target}</Text>
+          <Text style={[styles.sep, { color: palette.accent, opacity: denomOpacity }]}> / </Text>
+          <Text style={[styles.target, { color: palette.accent, opacity: denomOpacity }]}>
+            {target}
+          </Text>
         </Text>
       </Animated.View>
     </View>
@@ -51,15 +56,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   count: {
-    fontSize: 22,
+    fontSize: 32,
     fontWeight: '700',
   },
   sep: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '400',
   },
   target: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '500',
   },
 });

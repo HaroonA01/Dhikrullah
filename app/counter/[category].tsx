@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   AppState,
-  LayoutChangeEvent,
+  Dimensions,
   Pressable,
   StyleSheet,
   Text,
@@ -32,14 +32,20 @@ import {
 import { META_KEY_LIFETIME_SECONDS, todayKey } from '@/lib/stats';
 import { DhikrPager } from '@/components/DhikrPager';
 import { GradientBackground } from '@/components/GradientBackground';
-import { GlassCard } from '@/components/GlassCard';
+import { MihrabTile } from '@/components/MihrabTile';
+import { MIHRAB_ASPECT } from '@/components/mihrabPath';
 import { ProgressBar } from '@/components/ProgressBar';
 import { CountDisplay } from '@/components/CountDisplay';
 import { ActionPill } from '@/components/ActionPill';
+import { GhostArrow } from '@/components/GhostArrow';
 import { InfoModal } from '@/components/InfoModal';
 import { AudioButton } from '@/components/AudioButton';
 import { Confetti } from '@/components/Confetti';
 import { CardProgressRing } from '@/components/CardProgressRing';
+
+const SCREEN_W = Dimensions.get('window').width;
+const TILE_WIDTH = Math.min(SCREEN_W - 112, 300);
+const TILE_HEIGHT = TILE_WIDTH * MIHRAB_ASPECT;
 
 export default function CounterScreen() {
   const { category } = useLocalSearchParams<{ category: string }>();
@@ -61,7 +67,6 @@ export default function CounterScreen() {
   } = useCounter(categoryId);
   const { toggle, isFavourite } = useFavourites();
   const [infoOpen, setInfoOpen] = useState(false);
-  const [cardSize, setCardSize] = useState({ w: 0, h: 0 });
 
   useFocusEffect(
     useCallback(() => {
@@ -128,20 +133,11 @@ export default function CounterScreen() {
 
   const currentDhikr = dhikrs[state.currentDhikrIndex];
   const count = currentDhikr ? state.counts[currentDhikr.id] ?? 0 : 0;
-  const isFirst = state.currentDhikrIndex === 0;
-  const isLast = state.currentDhikrIndex >= dhikrs.length - 1;
   const reachedTarget = !!currentDhikr && count >= currentDhikr.target;
   const favourited = currentDhikr ? isFavourite(currentDhikr.id) : false;
   const dhikrPercent = currentDhikr
     ? (Math.min(count, currentDhikr.target) / currentDhikr.target) * 100
     : 0;
-
-  const onCardLayout = (e: LayoutChangeEvent) => {
-    const { width, height } = e.nativeEvent.layout;
-    if (width !== cardSize.w || height !== cardSize.h) {
-      setCardSize({ w: width, h: height });
-    }
-  };
 
   return (
     <View style={styles.root}>
@@ -174,19 +170,22 @@ export default function CounterScreen() {
 
       <View style={[styles.content, { paddingBottom: insets.bottom + 16 }]}>
         {currentDhikr ? (
-          <Animated.View
-            key={currentDhikr.id}
-            entering={SlideInRight.duration(260)}
-            exiting={SlideOutLeft.duration(180)}
-            style={styles.cardWrap}
-          >
-            <View onLayout={onCardLayout} style={styles.cardInner}>
-              <Pressable
-                onPress={incrementCurrent}
-                disabled={reachedTarget}
-                style={styles.cardPressable}
-              >
-                <GlassCard style={styles.card}>
+          <View style={styles.tileRow}>
+            <Animated.View
+              key={currentDhikr.id}
+              entering={SlideInRight.duration(260)}
+              exiting={SlideOutLeft.duration(180)}
+              style={styles.tileWrap}
+            >
+              <Pressable onPress={incrementCurrent} style={styles.tilePressable}>
+                <MihrabTile width={TILE_WIDTH}>
+                  <View style={styles.countSlot}>
+                    <CountDisplay
+                      count={count}
+                      target={currentDhikr.target}
+                      reachedTarget={reachedTarget}
+                    />
+                  </View>
                   <Pressable
                     onPress={() => setInfoOpen(true)}
                     style={[
@@ -206,20 +205,25 @@ export default function CounterScreen() {
                       dhikrId={currentDhikr.id}
                     />
                   </View>
-
-                  <CountDisplay count={count} target={currentDhikr.target} />
-                  <DhikrPager dhikr={currentDhikr} />
-                </GlassCard>
+                  <View style={styles.pagerSlot}>
+                    <DhikrPager dhikr={currentDhikr} />
+                  </View>
+                </MihrabTile>
               </Pressable>
-              {cardSize.w > 0 && cardSize.h > 0 && (
-                <CardProgressRing
-                  percent={dhikrPercent}
-                  width={cardSize.w}
-                  height={cardSize.h}
-                />
-              )}
+              <CardProgressRing
+                percent={dhikrPercent}
+                width={TILE_WIDTH}
+                height={TILE_HEIGHT}
+              />
+            </Animated.View>
+
+            <View style={styles.arrowLeft} pointerEvents="box-none">
+              <GhostArrow Icon={ChevronLeft} onPress={prevDhikr} />
             </View>
-          </Animated.View>
+            <View style={styles.arrowRight} pointerEvents="box-none">
+              <GhostArrow Icon={ChevronRight} onPress={nextDhikr} />
+            </View>
+          </View>
         ) : (
           <Text style={{ color: palette.textMid, textAlign: 'center' }}>
             No dhikrs in this category.
@@ -227,11 +231,6 @@ export default function CounterScreen() {
         )}
 
         <View style={styles.actions}>
-          <ActionPill
-            Icon={ChevronLeft}
-            onPress={prevDhikr}
-            disabled={isFirst}
-          />
           <ActionPill
             Icon={Minus}
             onPress={decrementCurrent}
@@ -244,16 +243,7 @@ export default function CounterScreen() {
             active={favourited}
             iconFill
           />
-          <ActionPill
-            Icon={Plus}
-            onPress={incrementCurrent}
-            disabled={reachedTarget}
-          />
-          <ActionPill
-            Icon={ChevronRight}
-            onPress={nextDhikr}
-            disabled={isLast}
-          />
+          <ActionPill Icon={Plus} onPress={incrementCurrent} />
         </View>
       </View>
 
@@ -277,7 +267,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    marginBottom: 14,
+    marginBottom: 10,
   },
   headerBtn: {
     width: 40,
@@ -308,27 +298,49 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingHorizontal: 0,
+    paddingTop: 8,
     justifyContent: 'space-between',
   },
-  cardWrap: {
+  tileRow: {
     flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-  },
-  cardInner: {
     position: 'relative',
   },
-  cardPressable: {},
-  card: {
-    paddingTop: 20,
-    paddingBottom: 24,
-    paddingHorizontal: 12,
+  arrowLeft: {
+    position: 'absolute',
+    left: 12,
+    top: '50%',
+    marginTop: -22,
+  },
+  arrowRight: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    marginTop: -22,
+  },
+  tileWrap: {
+    width: TILE_WIDTH,
+    height: TILE_HEIGHT,
+    position: 'relative',
+  },
+  tilePressable: {
+    width: TILE_WIDTH,
+    height: TILE_HEIGHT,
+  },
+  countSlot: {
+    position: 'absolute',
+    top: TILE_HEIGHT * 0.10,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 2,
   },
   cornerLeft: {
     position: 'absolute',
-    top: 12,
-    left: 14,
+    top: TILE_HEIGHT * 0.28,
+    left: 24,
     width: 34,
     height: 34,
     borderRadius: 17,
@@ -339,16 +351,24 @@ const styles = StyleSheet.create({
   },
   cornerRight: {
     position: 'absolute',
-    top: 12,
-    right: 14,
+    top: TILE_HEIGHT * 0.28,
+    right: 24,
     zIndex: 2,
+  },
+  pagerSlot: {
+    position: 'absolute',
+    top: TILE_HEIGHT * 0.42,
+    left: 0,
+    right: 0,
+    bottom: TILE_HEIGHT * 0.08,
+    justifyContent: 'center',
   },
   actions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
-    marginTop: 20,
-    paddingHorizontal: 4,
+    gap: 24,
+    marginTop: 12,
+    paddingHorizontal: 16,
   },
 });

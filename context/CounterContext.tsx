@@ -243,8 +243,11 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const dhikr = list[cur.currentDhikrIndex];
           if (!dhikr) return prev;
           if ((cur.counts[dhikr.id] ?? 0) < dhikr.target) return prev;
-          if (cur.currentDhikrIndex + 1 >= list.length) return prev;
-          const nextIdx = cur.currentDhikrIndex + 1;
+          const allComplete = list.every(
+            (d) => (cur.counts[d.id] ?? 0) >= d.target,
+          );
+          if (allComplete) return prev;
+          const nextIdx = (cur.currentDhikrIndex + 1) % list.length;
           const nextD = list[nextIdx];
           const counts = { ...cur.counts, [nextD.id]: cur.counts[nextD.id] ?? 0 };
           scheduleIndexWrite(id, nextIdx);
@@ -275,7 +278,7 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
           counts[dhikr.id] = dhikr.target;
           hapticsStrong();
           bumpConfetti(id);
-          if (cur.currentDhikrIndex + 1 < list.length) scheduleAdvance(id);
+          scheduleAdvance(id);
           scheduleCountWrite(dhikr.id, dhikr.target);
           if (list.every((d) => (counts[d.id] ?? 0) >= d.target)) {
             recordCategoryCompletion(id);
@@ -340,8 +343,9 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const list = dhikrsByCategory[id] ?? [];
         const cur = prev[id];
         if (!cur) return prev;
-        if (cur.currentDhikrIndex + 1 >= list.length) return prev;
-        const nextIdx = cur.currentDhikrIndex + 1;
+        if (list.length === 0) return prev;
+        const nextIdx = (cur.currentDhikrIndex + 1) % list.length;
+        if (nextIdx === cur.currentDhikrIndex) return prev;
         scheduleIndexWrite(id, nextIdx);
         return { ...prev, [id]: { ...cur, currentDhikrIndex: nextIdx } };
       });
@@ -353,15 +357,18 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
     (id: CategoryId) => {
       clearAdvance(id);
       setStates((prev) => {
+        const list = dhikrsByCategory[id] ?? [];
         const cur = prev[id];
         if (!cur) return prev;
-        if (cur.currentDhikrIndex <= 0) return prev;
-        const nextIdx = cur.currentDhikrIndex - 1;
+        if (list.length === 0) return prev;
+        const nextIdx =
+          (cur.currentDhikrIndex - 1 + list.length) % list.length;
+        if (nextIdx === cur.currentDhikrIndex) return prev;
         scheduleIndexWrite(id, nextIdx);
         return { ...prev, [id]: { ...cur, currentDhikrIndex: nextIdx } };
       });
     },
-    [scheduleIndexWrite, clearAdvance],
+    [dhikrsByCategory, scheduleIndexWrite, clearAdvance],
   );
 
   const seekToDhikr = useCallback(

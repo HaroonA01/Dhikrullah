@@ -1,41 +1,29 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import Animated, {
   useAnimatedProps,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
 import { useTheme } from '@/context/ThemeContext';
+import {
+  MIHRAB_PATH_D,
+  MIHRAB_PATH_LENGTH,
+  MIHRAB_VIEWBOX,
+} from './mihrabPath';
 
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface Props {
   percent: number;
   width: number;
   height: number;
-  radius?: number;
   stroke?: number;
 }
 
-function roundedRectPerimeter(w: number, h: number, r: number): number {
-  const clampedR = Math.min(r, Math.min(w, h) / 2);
-  return 2 * (w - 2 * clampedR) + 2 * (h - 2 * clampedR) + 2 * Math.PI * clampedR;
-}
-
-export function CardProgressRing({
-  percent,
-  width,
-  height,
-  radius = 16,
-  stroke = 3,
-}: Props) {
+export function CardProgressRing({ percent, width, height, stroke = 3 }: Props) {
   const { palette } = useTheme();
-  const perimeter = useMemo(
-    () => roundedRectPerimeter(width - stroke, height - stroke, radius),
-    [width, height, radius, stroke],
-  );
-
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -47,35 +35,31 @@ export function CardProgressRing({
   }, [percent, progress]);
 
   const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: perimeter * (1 - progress.value / 100),
+    strokeDashoffset: MIHRAB_PATH_LENGTH * (1 - progress.value / 100),
   }));
 
   if (width <= 0 || height <= 0) return null;
 
-  const rectProps = {
-    x: stroke / 2,
-    y: stroke / 2,
-    width: width - stroke,
-    height: height - stroke,
-    rx: radius,
-    ry: radius,
-    fill: 'transparent',
-  };
-
   return (
     <View pointerEvents="none" style={[styles.wrap, { width, height }]}>
-      <Svg width={width} height={height}>
-        <Rect
-          {...rectProps}
+      <Svg
+        width={width}
+        height={height}
+        viewBox={MIHRAB_VIEWBOX}
+      >
+        <Path
+          d={MIHRAB_PATH_D}
+          fill="none"
           stroke={palette.glassBorder}
           strokeWidth={stroke}
         />
-        <AnimatedRect
-          {...rectProps}
+        <AnimatedPath
+          d={MIHRAB_PATH_D}
+          fill="none"
           stroke={palette.accent}
           strokeWidth={stroke}
           strokeLinecap="round"
-          strokeDasharray={`${perimeter} ${perimeter}`}
+          strokeDasharray={`${MIHRAB_PATH_LENGTH} ${MIHRAB_PATH_LENGTH}`}
           animatedProps={animatedProps}
         />
       </Svg>
