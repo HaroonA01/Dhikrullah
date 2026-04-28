@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -10,17 +10,20 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector, NativeViewGestureHandler } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useDhikrContent } from '@/context/CounterContext';
-import { usePrefs, usePrayerTimes } from '@/context/PrefsContext';
+import { useDhikrContent, useCounterContext } from '@/context/CounterContext';
+import { usePrefs } from '@/context/PrefsContext';
 import { useTheme } from '@/context/ThemeContext';
 import { CategoryCard } from '@/components/CategoryCard';
 import { GradientBackground } from '@/components/GradientBackground';
 import { SwipeChevron } from '@/components/SwipeChevron';
 import { LocationPrompt } from '@/components/LocationPrompt';
 import { useRandomQuote } from '@/hooks/useRandomQuote';
-import { formatPrayerTime } from '@/lib/prayer';
+import {
+  computeExtendedTimes,
+  computeTomorrowFajr,
+  computeCategoryWindows,
+} from '@/lib/prayer';
 import { requestDeviceLocation } from '@/lib/location';
-import type { CategoryId } from '@/types';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 const SPRING_EXPAND = { damping: 12, stiffness: 78, mass: 1.15 };
@@ -29,28 +32,48 @@ const EXPAND_THRESHOLD = 0.38;
 const COLLAPSE_THRESHOLD = 0.62;
 const FLING_VELOCITY = 1400;
 
-const PRAYER_IDS: ReadonlySet<CategoryId> = new Set([
-  'fajr',
-  'dhuhr',
-  'asr',
-  'maghrib',
-  'isha',
-]);
-
 export default function Home() {
   const insets = useSafeAreaInsets();
   const quote = useRandomQuote();
   const { palette } = useTheme();
   const { categories } = useDhikrContent();
+  const { states, dhikrsByCategory } = useCounterContext();
   const {
     hydrated: prefsHydrated,
     location,
     locationPromptShown,
     markLocationPromptShown,
     setLocation,
+    prayerMethodId,
+    madhab,
+    wakingUpMinutes,
+    beforeBedMinutes,
   } = usePrefs();
-  const prayerTimes = usePrayerTimes();
   const tabBarH = 80;
+
+  const categoryPercents = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const cat of categories) {
+      const list = dhikrsByCategory[cat.id] ?? [];
+      const state = states[cat.id];
+      if (!state || list.length === 0) { result[cat.id] = 0; continue; }
+      let total = 0, done = 0;
+      for (const d of list) {
+        total += d.target;
+        done += Math.min(state.counts[d.id] ?? 0, d.target);
+      }
+      result[cat.id] = total > 0 ? (done / total) * 100 : 0;
+    }
+    return result;
+  }, [categories, dhikrsByCategory, states]);
+
+  const categoryWindows = useMemo(() => {
+    if (!location) return null;
+    const now = new Date();
+    const ext = computeExtendedTimes(location, now, prayerMethodId, madhab);
+    const tomorrowFajr = computeTomorrowFajr(location, now, prayerMethodId, madhab);
+    return computeCategoryWindows(ext, tomorrowFajr, wakingUpMinutes, beforeBedMinutes);
+  }, [location, prayerMethodId, madhab, wakingUpMinutes, beforeBedMinutes]);
 
   const [promptVisible, setPromptVisible] = useState(false);
   const promptTriggered = useRef(false);
@@ -199,17 +222,18 @@ export default function Home() {
               showsVerticalScrollIndicator={false}
             >
               {categories.map((c) => {
-                const time =
-                  PRAYER_IDS.has(c.id) && prayerTimes
-                    ? prayerTimes.get(c.id)
-                    : null;
-                const trailing = time ? (
-                  <Text style={[styles.timeText, { color: palette.accent }]}>
-                    {formatPrayerTime(time)}
-                  </Text>
-                ) : undefined;
+                const win = categoryWindows?.[c.id];
+                const timeRange = win
+                  ? `${win.startLabel} – ${win.endLabel}`
+                  : undefined;
+                const pct = categoryPercents[c.id] ?? 0;
                 return (
-                  <CategoryCard key={c.id} category={c} trailing={trailing} />
+                  <CategoryCard
+                    key={c.id}
+                    category={c}
+                    timeRange={timeRange}
+                    progress={pct}
+                  />
                 );
               })}
             </Animated.ScrollView>
@@ -313,11 +337,5 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: 16,
     paddingBottom: 120,
-  },
-  timeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    fontVariant: ['tabular-nums'],
   },
 });

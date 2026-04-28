@@ -11,12 +11,17 @@ import {
   View,
 } from 'react-native';
 import Constants from 'expo-constants';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  Bell,
+  BellOff,
+  BedDouble,
   Check,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   Compass,
+  Coffee,
   Mail,
   MapPin,
   Palette as PaletteIcon,
@@ -39,10 +44,12 @@ import { SettingsRow } from '@/components/SettingsRow';
 import { ThemeSwatch } from '@/components/ThemeSwatch';
 import { CitySearchModal } from '@/components/CitySearchModal';
 import { useTheme, type Mode } from '@/context/ThemeContext';
-import { usePrefs } from '@/context/PrefsContext';
+import { usePrefs, PRAYER_CATEGORY_IDS, type NotifOffset } from '@/context/PrefsContext';
 import { METHODS, type Madhab, type MethodId } from '@/lib/prayer';
 import { requestDeviceLocation, type LocationData } from '@/lib/location';
+import { requestNotificationPermission } from '@/lib/notifications';
 import { FEEDBACK_SUBJECT, SUPPORT_EMAIL } from '@/constants/about';
+import type { CategoryId } from '@/types';
 
 const MODES: { id: Mode; label: string }[] = [
   { id: 'light', label: 'Light' },
@@ -54,6 +61,39 @@ const MADHABS: { id: Madhab; label: string }[] = [
   { id: 'shafi', label: 'Shafi' },
   { id: 'hanafi', label: 'Hanafi' },
 ];
+
+const NOTIF_OFFSET_OPTIONS: { value: NotifOffset; label: string }[] = [
+  { value: 0, label: 'Adhan' },
+  { value: 10, label: '+10m' },
+  { value: 30, label: '+30m' },
+  { value: 60, label: '+1h' },
+];
+
+const ALL_CATEGORY_IDS: CategoryId[] = [
+  'all_day', 'fajr', 'waking_up', 'morning', 'dhuhr', 'asr',
+  'evening', 'maghrib', 'isha', 'witr', 'night', 'before_bed',
+];
+
+const CATEGORY_DISPLAY: Record<CategoryId, string> = {
+  all_day: 'All Day',
+  fajr: 'Fajr',
+  waking_up: 'Waking Up',
+  morning: 'Morning',
+  dhuhr: 'Dhuhr',
+  asr: 'Asr',
+  evening: 'Evening',
+  maghrib: 'Maghrib',
+  isha: 'Isha',
+  witr: 'Witr',
+  night: 'Night',
+  before_bed: 'Before Bed',
+};
+
+const minutesToTimeString = (minutes: number): string => {
+  const h = Math.floor(minutes / 60).toString().padStart(2, '0');
+  const m = (minutes % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
+};
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -69,11 +109,22 @@ export default function SettingsScreen() {
     setMadhab,
     location,
     setLocation,
+    wakingUpMinutes,
+    setWakingUpMinutes,
+    beforeBedMinutes,
+    setBeforeBedMinutes,
+    notifEnabled,
+    setNotifEnabled,
+    setAllNotifEnabled,
+    notifOffset,
+    setNotifOffset,
   } = usePrefs();
 
   const [methodPickerOpen, setMethodPickerOpen] = useState(false);
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [citySearchOpen, setCitySearchOpen] = useState(false);
+  const [timePickerOpen, setTimePickerOpen] = useState<'waking_up' | 'before_bed' | null>(null);
+  const [expandedPrayers, setExpandedPrayers] = useState<Set<CategoryId>>(new Set());
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const currentMethod = METHODS.find((m) => m.id === prayerMethodId) ?? METHODS[0];
@@ -104,6 +155,61 @@ export default function SettingsScreen() {
       )}`,
     ).catch(() => {
       Alert.alert('Could not open email', `Please email ${SUPPORT_EMAIL}.`);
+    });
+  };
+
+  const allEnabled = ALL_CATEGORY_IDS.every((id) => notifEnabled[id]);
+
+  const handleToggleAll = async (val: boolean) => {
+    if (val) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        Alert.alert(
+          'Permission required',
+          'Allow notifications in Settings to receive dhikr reminders.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ],
+        );
+        return;
+      }
+    }
+    if (!val) setExpandedPrayers(new Set());
+    setAllNotifEnabled(val);
+  };
+
+  const handleNotifToggle = async (id: CategoryId, val: boolean) => {
+    if (val) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        Alert.alert(
+          'Permission required',
+          'Allow notifications in Settings to receive dhikr reminders.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ],
+        );
+        return;
+      }
+    }
+    if (!val) {
+      setExpandedPrayers((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+    setNotifEnabled(id, val);
+  };
+
+  const togglePrayerExpanded = (id: CategoryId) => {
+    setExpandedPrayers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
   };
 
@@ -214,6 +320,105 @@ export default function SettingsScreen() {
           />
         </SettingsSection>
 
+        <SettingsSection title="Schedule">
+          <SettingsRow
+            label="Waking Up"
+            detail={minutesToTimeString(wakingUpMinutes)}
+            Icon={Coffee}
+            showChevron
+            onPress={() => setTimePickerOpen('waking_up')}
+          />
+          <SettingsRow
+            label="Before Bed"
+            detail={minutesToTimeString(beforeBedMinutes)}
+            Icon={BedDouble}
+            isLast
+            showChevron
+            onPress={() => setTimePickerOpen('before_bed')}
+          />
+        </SettingsSection>
+
+        <SettingsSection title="Notifications">
+          <SettingsRow
+            label="All Notifications"
+            detail={allEnabled ? 'All reminders on' : 'All reminders off'}
+            Icon={allEnabled ? Bell : BellOff}
+            trailing={
+              <Switch
+                value={allEnabled}
+                onValueChange={handleToggleAll}
+                trackColor={{ false: palette.glassBorder, true: palette.accent }}
+                thumbColor="#FFFFFF"
+              />
+            }
+          />
+          {!location ? (
+            <View style={[styles.notifNote, { borderColor: palette.glassBorder }]}>
+              <Text style={[styles.notifNoteText, { color: palette.textMid }]}>
+                Set a location in Prayer Times to enable prayer-based notifications.
+              </Text>
+            </View>
+          ) : null}
+          {ALL_CATEGORY_IDS.map((id, i) => {
+            const isPrayer = PRAYER_CATEGORY_IDS.includes(id);
+            const enabled = notifEnabled[id] ?? false;
+            const offset = notifOffset[id] ?? 0;
+            const expanded = expandedPrayers.has(id);
+            const isLast = i === ALL_CATEGORY_IDS.length - 1;
+            const showOffset = isPrayer && enabled && expanded;
+            return (
+              <View key={id}>
+                <SettingsRow
+                  label={CATEGORY_DISPLAY[id]}
+                  Icon={enabled ? Bell : BellOff}
+                  isLast={isLast && !showOffset}
+                  trailing={
+                    <View style={styles.rowTrailing}>
+                      {isPrayer && enabled ? (
+                        <Pressable
+                          onPress={() => togglePrayerExpanded(id)}
+                          hitSlop={8}
+                          style={styles.chevronBtn}
+                        >
+                          {expanded
+                            ? <ChevronUp size={16} color={palette.accent} strokeWidth={2.5} />
+                            : <ChevronDown size={16} color={palette.accent} strokeWidth={2.5} />
+                          }
+                        </Pressable>
+                      ) : null}
+                      <Switch
+                        value={enabled}
+                        onValueChange={(v) => handleNotifToggle(id, v)}
+                        trackColor={{ false: palette.glassBorder, true: palette.accent }}
+                        thumbColor="#FFFFFF"
+                      />
+                    </View>
+                  }
+                />
+                {showOffset ? (
+                  <View
+                    style={[
+                      styles.offsetRow,
+                      isLast && styles.offsetRowLast,
+                      { borderTopColor: palette.glassBorder },
+                    ]}
+                  >
+                    <Text style={[styles.offsetLabel, { color: palette.textMid }]}>
+                      Notify
+                    </Text>
+                    <Segmented
+                      options={NOTIF_OFFSET_OPTIONS.map((o) => ({ id: String(o.value) as string & NotifOffset, label: o.label }))}
+                      value={String(offset)}
+                      onChange={(v) => setNotifOffset(id, Number(v) as NotifOffset)}
+                      palette={palette}
+                    />
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
+        </SettingsSection>
+
         <SettingsSection title="About">
           <SettingsRow label="Version" detail={version} Icon={Tag} />
           <SettingsRow
@@ -254,9 +459,171 @@ export default function SettingsScreen() {
         onSelect={handleCitySelect}
         onClose={() => setCitySearchOpen(false)}
       />
+
+      <TimePickerModal
+        visible={timePickerOpen !== null}
+        title={timePickerOpen === 'waking_up' ? 'Waking Up Time' : 'Before Bed Time'}
+        currentMinutes={timePickerOpen === 'waking_up' ? wakingUpMinutes : beforeBedMinutes}
+        onSelect={(m) => {
+          if (timePickerOpen === 'waking_up') setWakingUpMinutes(m);
+          else if (timePickerOpen === 'before_bed') setBeforeBedMinutes(m);
+          setTimePickerOpen(null);
+        }}
+        onClose={() => setTimePickerOpen(null)}
+        palette={palette}
+      />
     </View>
   );
 }
+
+// ─── Time Picker Modal ─────────────────────────────────────────────────────
+
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = [0, 15, 30, 45];
+
+interface TimePickerProps {
+  visible: boolean;
+  title: string;
+  currentMinutes: number;
+  onSelect: (minutes: number) => void;
+  onClose: () => void;
+  palette: ReturnType<typeof useTheme>['palette'];
+}
+
+function TimePickerModal({ visible, title, currentMinutes, onSelect, onClose, palette }: TimePickerProps) {
+  const [h, setH] = useState(Math.floor(currentMinutes / 60));
+  const [m, setM] = useState(currentMinutes % 60 < 15 ? 0 : currentMinutes % 60 < 30 ? 15 : currentMinutes % 60 < 45 ? 30 : 45);
+
+  useEffect(() => {
+    if (visible) {
+      setH(Math.floor(currentMinutes / 60));
+      const raw = currentMinutes % 60;
+      setM(raw < 15 ? 0 : raw < 30 ? 15 : raw < 45 ? 30 : 45);
+    }
+  }, [visible, currentMinutes]);
+
+  const cardBg = palette.scheme === 'dark' ? palette.bgMid : '#FFFFFF';
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={pickerStyles.backdrop} onPress={onClose}>
+        <Pressable
+          style={[pickerStyles.card, { backgroundColor: cardBg, borderColor: palette.glassBorder }]}
+          onPress={() => {}}
+        >
+          <Text style={[pickerStyles.title, { color: palette.textDark }]}>{title}</Text>
+
+          <View style={timeStyles.row}>
+            <View style={timeStyles.col}>
+              <Text style={[timeStyles.colLabel, { color: palette.textMid }]}>Hour</Text>
+              <ScrollView style={timeStyles.scroll} showsVerticalScrollIndicator={false}>
+                {HOURS.map((hour) => (
+                  <Pressable
+                    key={hour}
+                    onPress={() => setH(hour)}
+                    style={[
+                      timeStyles.item,
+                      h === hour && { backgroundColor: palette.accent },
+                    ]}
+                  >
+                    <Text style={[timeStyles.itemText, { color: h === hour ? '#FFF' : palette.textDark }]}>
+                      {hour.toString().padStart(2, '0')}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+            <Text style={[timeStyles.colon, { color: palette.textDark }]}>:</Text>
+            <View style={timeStyles.col}>
+              <Text style={[timeStyles.colLabel, { color: palette.textMid }]}>Min</Text>
+              <View>
+                {MINUTES.map((min) => (
+                  <Pressable
+                    key={min}
+                    onPress={() => setM(min)}
+                    style={[
+                      timeStyles.item,
+                      m === min && { backgroundColor: palette.accent },
+                    ]}
+                  >
+                    <Text style={[timeStyles.itemText, { color: m === min ? '#FFF' : palette.textDark }]}>
+                      {min.toString().padStart(2, '0')}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          <Pressable
+            onPress={() => onSelect(h * 60 + m)}
+            style={({ pressed }) => [
+              timeStyles.confirm,
+              { backgroundColor: palette.accent },
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Text style={timeStyles.confirmText}>Confirm</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+const timeStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    gap: 8,
+    marginVertical: 16,
+  },
+  col: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  colLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  scroll: {
+    maxHeight: 200,
+  },
+  item: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  itemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+  },
+  colon: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginTop: 36,
+  },
+  confirm: {
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  confirmText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+});
+
+// ─── Theme Row ─────────────────────────────────────────────────────────────
 
 interface ThemeRowProps {
   themes: ReturnType<typeof useTheme>['themes'];
@@ -269,101 +636,81 @@ function ThemeRow({ themes, themeId, setThemeId, palette }: ThemeRowProps) {
   const [scrollX, setScrollX] = useState(0);
   const [contentW, setContentW] = useState(0);
   const [layoutW, setLayoutW] = useState(0);
-  const [hasScrolled, setHasScrolled] = useState(false);
 
-  const showLeftFade = scrollX > 8;
   const showRightFade = layoutW > 0 && scrollX < contentW - layoutW - 8;
 
   const bounce = useSharedValue(0);
   const arrowOpacity = useSharedValue(1);
+
   useEffect(() => {
-    if (hasScrolled) {
-      bounce.value = withTiming(0, { duration: 200 });
-      arrowOpacity.value = withTiming(0, { duration: 220 });
-      return;
-    }
-    arrowOpacity.value = withTiming(1, { duration: 200 });
     bounce.value = withRepeat(
       withSequence(
-        withTiming(-6, { duration: 600 }),
-        withTiming(0, { duration: 600 }),
+        withTiming(-7, { duration: 480 }),
+        withTiming(0, { duration: 480 }),
       ),
-      -1,
+      3,
       false,
     );
-  }, [hasScrolled, bounce, arrowOpacity]);
+    const timer = setTimeout(() => {
+      arrowOpacity.value = withTiming(0, { duration: 350 });
+    }, 2900);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const bounceStyle = useAnimatedStyle(() => ({
     opacity: arrowOpacity.value,
     transform: [{ translateX: bounce.value }],
   }));
 
-  const fadeColor = palette.bgMid;
-
   return (
     <View style={styles.themeBlock}>
-      <View style={fadeStyles.scrollWrap}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.swatchRow}
-          onScroll={(e) => {
-            const x = e.nativeEvent.contentOffset.x;
-            setScrollX(x);
-            if (!hasScrolled && x > 4) setHasScrolled(true);
-          }}
-          scrollEventThrottle={16}
-          onContentSizeChange={(w) => setContentW(w)}
-          onLayout={(e) => setLayoutW(e.nativeEvent.layout.width)}
-        >
-          {themes.map((t) => (
-            <View key={t.id} style={styles.swatchCol}>
-              <ThemeSwatch
-                theme={t}
-                selected={t.id === themeId}
-                onPress={() => setThemeId(t.id)}
-              />
-              <Text
-                style={[
-                  styles.swatchLabel,
-                  {
-                    color: t.id === themeId ? palette.accent : palette.textMid,
-                    fontWeight: t.id === themeId ? '700' : '500',
-                  },
-                ]}
-              >
-                {t.name.replace(' ', '\n')}
-              </Text>
-            </View>
-          ))}
-        </ScrollView>
+      <View style={fadeStyles.outer}>
+        <View style={fadeStyles.scrollWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.swatchRow}
+            onScroll={(e) => {
+              const x = e.nativeEvent.contentOffset.x;
+              setScrollX(x);
+              if (x > 4) {
+                arrowOpacity.value = withTiming(0, { duration: 200 });
+                bounce.value = 0;
+              }
+            }}
+            scrollEventThrottle={16}
+            onContentSizeChange={(w) => setContentW(w)}
+            onLayout={(e) => setLayoutW(e.nativeEvent.layout.width)}
+          >
+            {themes.map((t) => (
+              <View key={t.id} style={styles.swatchCol}>
+                <ThemeSwatch
+                  theme={t}
+                  selected={t.id === themeId}
+                  onPress={() => setThemeId(t.id)}
+                />
+                <Text
+                  style={[
+                    styles.swatchLabel,
+                    {
+                      color: t.id === themeId ? palette.accent : palette.textMid,
+                      fontWeight: t.id === themeId ? '700' : '500',
+                    },
+                  ]}
+                >
+                  {t.name.replace(' ', '\n')}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
 
-        {showLeftFade ? (
-          <LinearGradient
-            colors={[fadeColor, `${fadeColor}00`]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={fadeStyles.fadeLeft}
-            pointerEvents="none"
-          />
-        ) : null}
+        </View>
 
         {showRightFade ? (
-          <>
-            <LinearGradient
-              colors={[`${fadeColor}00`, fadeColor]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={fadeStyles.fadeRight}
-              pointerEvents="none"
-            />
-            <Animated.View
-              style={[fadeStyles.chevron, bounceStyle]}
-              pointerEvents="none"
-            >
-              <ChevronRight size={20} color={palette.accent} strokeWidth={2.5} />
-            </Animated.View>
-          </>
+          <Animated.View style={[fadeStyles.chevron, bounceStyle]} pointerEvents="none">
+            <ChevronRight size={18} color={palette.accent} strokeWidth={2.5} />
+          </Animated.View>
         ) : null}
       </View>
     </View>
@@ -371,27 +718,17 @@ function ThemeRow({ themes, themeId, setThemeId, palette }: ThemeRowProps) {
 }
 
 const fadeStyles = StyleSheet.create({
+  outer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   scrollWrap: {
+    flex: 1,
     position: 'relative',
   },
-  fadeLeft: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 28,
-  },
-  fadeRight: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 36,
-  },
   chevron: {
-    position: 'absolute',
-    right: 6,
-    top: 22,
+    paddingLeft: 4,
+    paddingRight: 6,
   },
 });
 
@@ -667,8 +1004,7 @@ const styles = StyleSheet.create({
   },
   swatchRow: {
     gap: 14,
-    paddingRight: 8,
-    paddingLeft: 4,
+    paddingHorizontal: 4,
   },
   swatchCol: {
     alignItems: 'center',
@@ -682,5 +1018,40 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     height: 28,
     flexShrink: 1,
+  },
+  notifNote: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  notifNoteText: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  rowTrailing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  chevronBtn: {
+    padding: 2,
+  },
+  offsetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  offsetRowLast: {
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
+  },
+  offsetLabel: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

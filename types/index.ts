@@ -9,11 +9,12 @@ export type CategoryId =
   | 'asr'
   | 'maghrib'
   | 'isha'
+  | 'witr'
   | 'before_bed';
 
 const KNOWN_CATEGORY_IDS: readonly CategoryId[] = [
   'all_day', 'waking_up', 'morning', 'evening', 'night',
-  'fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'before_bed',
+  'fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'witr', 'before_bed',
 ];
 
 export const isKnownCategoryId = (s: string): s is CategoryId =>

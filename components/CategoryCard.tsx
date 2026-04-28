@@ -12,23 +12,12 @@ import {
   Sparkles,
   Coffee,
   BedDouble,
+  Wind,
 } from 'lucide-react-native';
 import { Category, CategoryId } from '@/types';
 import { useTheme } from '@/context/ThemeContext';
+import { CircleProgress } from '@/components/CircleProgress';
 
-const ARABIC: Record<CategoryId, string> = {
-  all_day: 'ك',
-  waking_up: 'ي',
-  morning: 'ص',
-  evening: 'م',
-  night: 'ن',
-  fajr: 'ف',
-  dhuhr: 'ط',
-  asr: 'ع',
-  maghrib: 'غ',
-  isha: 'ش',
-  before_bed: 'ل',
-};
 
 const SUBTITLES: Record<CategoryId, string> = {
   all_day: 'Anytime',
@@ -41,6 +30,7 @@ const SUBTITLES: Record<CategoryId, string> = {
   asr: 'Afternoon prayer',
   maghrib: 'Sunset prayer',
   isha: 'Night prayer',
+  witr: 'Night prayer supplication',
   before_bed: 'Sleeping dua',
 };
 
@@ -58,21 +48,21 @@ const ICONS: Record<
   asr: Hourglass,
   maghrib: Compass,
   isha: Star,
+  witr: Wind,
   before_bed: BedDouble,
 };
 
 interface Props {
   category: Category;
   trailing?: React.ReactNode;
+  timeRange?: string;
+  progress?: number;
 }
 
-export function CategoryCard({ category, trailing }: Props) {
+export function CategoryCard({ category, trailing, timeRange, progress }: Props) {
   const { palette } = useTheme();
-  const arabic = ARABIC[category.id];
   const subtitle = SUBTITLES[category.id];
   const Icon = ICONS[category.id];
-
-  const watermarkColor = `${palette.accent}14`; // ~8% alpha
 
   return (
     <Pressable
@@ -86,29 +76,34 @@ export function CategoryCard({ category, trailing }: Props) {
       ]}
       onPress={() => router.push(`/counter/${category.id}`)}
     >
-      <Text
-        style={[
-          styles.arabicWatermark,
-          { color: watermarkColor, right: trailing ? 80 : 16 },
-        ]}
-        numberOfLines={1}
-      >
-        {arabic}
-      </Text>
-
+      {/* left accent bar */}
       <View style={[styles.accentBar, { backgroundColor: palette.accent }]} />
 
-      <View style={styles.content}>
-        <Icon size={20} color={palette.accent} strokeWidth={1.5} />
-        <View style={styles.textBlock}>
-          <Text style={[styles.label, { color: palette.textDark }]}>
-            {category.label}
-          </Text>
-          <Text style={[styles.subtitle, { color: palette.textMid }]}>
-            {subtitle}
-          </Text>
+      {/* left 75% — text + icon + arabic watermark */}
+      <View style={styles.left}>
+        <View style={styles.row}>
+          <Icon size={20} color={palette.accent} strokeWidth={1.5} />
+          <View style={styles.textBlock}>
+            <Text style={[styles.label, { color: palette.textDark }]}>
+              {category.label}
+            </Text>
+            {timeRange ? (
+              <Text style={[styles.timeRange, { color: palette.accent }]}>
+                {timeRange}
+              </Text>
+            ) : null}
+            <Text style={[styles.subtitle, { color: palette.textMid }]}>
+              {subtitle}
+            </Text>
+          </View>
         </View>
-        {trailing ? <View style={styles.trailing}>{trailing}</View> : null}
+      </View>
+
+      {/* right 25% — progress ring */}
+      <View style={styles.right}>
+        {progress !== undefined ? (
+          <CircleProgress percent={progress} />
+        ) : trailing ?? null}
       </View>
     </Pressable>
   );
@@ -117,13 +112,13 @@ export function CategoryCard({ category, trailing }: Props) {
 const styles = StyleSheet.create({
   card: {
     width: '100%',
-    height: 76,
+    height: 84,
     borderWidth: 1,
     borderRadius: 16,
     marginBottom: 10,
     overflow: 'hidden',
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -133,39 +128,46 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.75,
   },
-  arabicWatermark: {
-    position: 'absolute',
-    fontSize: 58,
-    fontWeight: '700',
-  },
   accentBar: {
     width: 3,
-    alignSelf: 'stretch',
     borderRadius: 2,
-    marginRight: 14,
+    marginRight: 0,
   },
-  content: {
+  left: {
+    flex: 3,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    paddingLeft: 12,
+    paddingRight: 8,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    flex: 1,
-    paddingRight: 16,
+    gap: 12,
   },
   textBlock: {
     flex: 1,
   },
   label: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.3,
+    lineHeight: 20,
+  },
+  timeRange: {
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+    lineHeight: 15,
   },
   subtitle: {
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 11,
+    lineHeight: 15,
+    opacity: 0.7,
   },
-  trailing: {
-    alignItems: 'flex-end',
+  right: {
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 56,
   },
 });
