@@ -9,10 +9,13 @@ import React, {
 import { getMeta, setMeta } from '@/db/queries';
 import { setHapticPrefs } from '@/lib/haptics';
 import {
-  computePrayerTimes,
+  computeExtendedTimes,
+  computeTomorrowFajr,
+  computeCategoryWindows,
   DEFAULT_METHOD,
   type Madhab,
   type MethodId,
+  type TimeWindow,
 } from '@/lib/prayer';
 import type { LocationData } from '@/lib/location';
 import type { CategoryId } from '@/types';
@@ -23,6 +26,40 @@ const KEY_PRAYER_METHOD = 'prefs.prayerMethod';
 const KEY_PRAYER_MADHAB = 'prefs.prayerMadhab';
 const KEY_LOCATION = 'prefs.location';
 const KEY_LOC_PROMPT_SHOWN = 'prefs.locationPromptShown';
+const KEY_WAKING_UP_MINUTES = 'prefs.wakingUpMinutes';
+const KEY_BEFORE_BED_MINUTES = 'prefs.beforeBedMinutes';
+const KEY_NOTIF_ENABLED = 'prefs.notifEnabled';
+const KEY_NOTIF_OFFSET = 'prefs.notifOffset';
+
+export type NotifOffset = 0 | 10 | 30 | 60;
+
+export const PRAYER_CATEGORY_IDS: readonly CategoryId[] = [
+  'fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'witr',
+];
+
+const DEFAULT_NOTIF_ENABLED: Record<CategoryId, boolean> = {
+  all_day: false,
+  fajr: false,
+  waking_up: false,
+  morning: false,
+  dhuhr: false,
+  asr: false,
+  evening: false,
+  maghrib: false,
+  isha: false,
+  witr: false,
+  night: false,
+  before_bed: false,
+};
+
+const DEFAULT_NOTIF_OFFSET: Partial<Record<CategoryId, NotifOffset>> = {
+  fajr: 0,
+  dhuhr: 0,
+  asr: 0,
+  maghrib: 0,
+  isha: 0,
+  witr: 0,
+};
 
 interface PrefsContextValue {
   hydrated: boolean;
@@ -38,6 +75,15 @@ interface PrefsContextValue {
   setLocation: (loc: LocationData | null) => void;
   locationPromptShown: boolean;
   markLocationPromptShown: () => void;
+  wakingUpMinutes: number;
+  setWakingUpMinutes: (m: number) => void;
+  beforeBedMinutes: number;
+  setBeforeBedMinutes: (m: number) => void;
+  notifEnabled: Record<CategoryId, boolean>;
+  setNotifEnabled: (id: CategoryId, v: boolean) => void;
+  setAllNotifEnabled: (v: boolean) => void;
+  notifOffset: Partial<Record<CategoryId, NotifOffset>>;
+  setNotifOffset: (id: CategoryId, v: NotifOffset) => void;
 }
 
 const PrefsContext = createContext<PrefsContextValue | null>(null);
@@ -50,6 +96,10 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [madhab, setMad] = useState<Madhab>('shafi');
   const [location, setLoc] = useState<LocationData | null>(null);
   const [locationPromptShown, setLPS] = useState(false);
+  const [wakingUpMinutes, setWUM] = useState(420); // 07:00
+  const [beforeBedMinutes, setBBM] = useState(1320); // 22:00
+  const [notifEnabled, setNE] = useState<Record<CategoryId, boolean>>(DEFAULT_NOTIF_ENABLED);
+  const [notifOffset, setNO] = useState<Partial<Record<CategoryId, NotifOffset>>>(DEFAULT_NOTIF_OFFSET);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,13 +107,17 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const tryHydrate = async () => {
       attempts += 1;
       try {
-        const [hi, hc, pm, mad, locStr, lps] = await Promise.all([
+        const [hi, hc, pm, mad, locStr, lps, wum, bbm, ne, no] = await Promise.all([
           getMeta(KEY_HAPTIC_INDIV),
           getMeta(KEY_HAPTIC_COMPLETE),
           getMeta(KEY_PRAYER_METHOD),
           getMeta(KEY_PRAYER_MADHAB),
           getMeta(KEY_LOCATION),
           getMeta(KEY_LOC_PROMPT_SHOWN),
+          getMeta(KEY_WAKING_UP_MINUTES),
+          getMeta(KEY_BEFORE_BED_MINUTES),
+          getMeta(KEY_NOTIF_ENABLED),
+          getMeta(KEY_NOTIF_OFFSET),
         ]);
         if (cancelled) return;
         const hiVal = hi !== '0';
@@ -82,6 +136,20 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           } catch {}
         }
         if (lps === '1') setLPS(true);
+        if (wum) {
+          const n = parseInt(wum, 10);
+          if (!isNaN(n)) setWUM(n);
+        }
+        if (bbm) {
+          const n = parseInt(bbm, 10);
+          if (!isNaN(n)) setBBM(n);
+        }
+        if (ne) {
+          try { setNE({ ...DEFAULT_NOTIF_ENABLED, ...JSON.parse(ne) }); } catch {}
+        }
+        if (no) {
+          try { setNO({ ...DEFAULT_NOTIF_OFFSET, ...JSON.parse(no) }); } catch {}
+        }
         setHydrated(true);
       } catch {
         if (cancelled || attempts >= 20) {
@@ -129,6 +197,42 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setMeta(KEY_LOC_PROMPT_SHOWN, '1').catch(() => {});
   }, []);
 
+  const setWakingUpMinutes = useCallback((m: number) => {
+    setWUM(m);
+    setMeta(KEY_WAKING_UP_MINUTES, String(m)).catch(() => {});
+  }, []);
+
+  const setBeforeBedMinutes = useCallback((m: number) => {
+    setBBM(m);
+    setMeta(KEY_BEFORE_BED_MINUTES, String(m)).catch(() => {});
+  }, []);
+
+  const setNotifEnabled = useCallback((id: CategoryId, v: boolean) => {
+    setNE((prev) => {
+      const next = { ...prev, [id]: v };
+      setMeta(KEY_NOTIF_ENABLED, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  const setAllNotifEnabled = useCallback((v: boolean) => {
+    setNE((prev) => {
+      const next = Object.fromEntries(
+        Object.keys(prev).map((k) => [k, v]),
+      ) as Record<CategoryId, boolean>;
+      setMeta(KEY_NOTIF_ENABLED, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  const setNotifOffset = useCallback((id: CategoryId, v: NotifOffset) => {
+    setNO((prev) => {
+      const next = { ...prev, [id]: v };
+      setMeta(KEY_NOTIF_OFFSET, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
   const value = useMemo<PrefsContextValue>(
     () => ({
       hydrated,
@@ -144,6 +248,15 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setLocation,
       locationPromptShown,
       markLocationPromptShown,
+      wakingUpMinutes,
+      setWakingUpMinutes,
+      beforeBedMinutes,
+      setBeforeBedMinutes,
+      notifEnabled,
+      setNotifEnabled,
+      setAllNotifEnabled,
+      notifOffset,
+      setNotifOffset,
     }),
     [
       hydrated,
@@ -153,12 +266,21 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       madhab,
       location,
       locationPromptShown,
+      wakingUpMinutes,
+      beforeBedMinutes,
+      notifEnabled,
+      notifOffset,
       setHapticsIndividual,
       setHapticsComplete,
       setPrayerMethodId,
       setMadhab,
       setLocation,
       markLocationPromptShown,
+      setWakingUpMinutes,
+      setBeforeBedMinutes,
+      setNotifEnabled,
+      setAllNotifEnabled,
+      setNotifOffset,
     ],
   );
 
@@ -186,6 +308,35 @@ export const usePrayerTimes = (): Map<CategoryId, Date> | null => {
 
   return useMemo(() => {
     if (!location) return null;
-    return computePrayerTimes(location, new Date(), prayerMethodId, madhab);
+    const ext = computeExtendedTimes(location, new Date(), prayerMethodId, madhab);
+    return new Map<CategoryId, Date>([
+      ['fajr', ext.fajr],
+      ['dhuhr', ext.dhuhr],
+      ['asr', ext.asr],
+      ['maghrib', ext.maghrib],
+      ['isha', ext.isha],
+    ]);
   }, [location, prayerMethodId, madhab, dayKey]);
+};
+
+export const useCategoryWindows = (): Partial<Record<CategoryId, TimeWindow>> | null => {
+  const { location, prayerMethodId, madhab, wakingUpMinutes, beforeBedMinutes } = usePrefs();
+  const [dayKey, setDayKey] = useState<string>(() => new Date().toDateString());
+
+  useEffect(() => {
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(24, 0, 5, 0);
+    const ms = Math.max(1000, next.getTime() - now.getTime());
+    const t = setTimeout(() => setDayKey(new Date().toDateString()), ms);
+    return () => clearTimeout(t);
+  }, [dayKey]);
+
+  return useMemo(() => {
+    if (!location) return null;
+    const now = new Date();
+    const ext = computeExtendedTimes(location, now, prayerMethodId, madhab);
+    const tomorrowFajr = computeTomorrowFajr(location, now, prayerMethodId, madhab);
+    return computeCategoryWindows(ext, tomorrowFajr, wakingUpMinutes, beforeBedMinutes);
+  }, [location, prayerMethodId, madhab, wakingUpMinutes, beforeBedMinutes, dayKey]);
 };

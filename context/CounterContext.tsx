@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { AppState } from 'react-native';
 import type { Category, CategoryId, CounterState, Dhikr } from '@/types';
 import { isKnownCategoryId } from '@/types';
 import {
@@ -29,6 +30,8 @@ import {
   META_KEY_LIFETIME_DHIKR,
   todayKey,
 } from '@/lib/stats';
+import { computeExtendedTimes } from '@/lib/prayer';
+import { usePrefs } from '@/context/PrefsContext';
 
 type AllState = Record<string, CounterState>;
 type TickMap = Record<string, number>;
@@ -44,6 +47,7 @@ interface ContextValue {
   nextDhikr: (id: CategoryId) => void;
   prevDhikr: (id: CategoryId) => void;
   resetAll: (id: CategoryId) => void;
+  resetAllCategories: () => void;
   seekToDhikr: (id: CategoryId, dhikrId: string) => void;
 }
 
@@ -92,6 +96,7 @@ function toDhikr(row: {
 }
 
 export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { location, prayerMethodId, madhab } = usePrefs();
   const [categories, setCategories] = useState<Category[]>([]);
   const [dhikrsByCategory, setDhikrsByCategory] = useState<Record<string, Dhikr[]>>({});
   const [states, setStates] = useState<AllState>({});
@@ -402,6 +407,76 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [dhikrsByCategory, clearAdvance],
   );
 
+  const resetAllCategories = useCallback(() => {
+    for (const cat of categories) {
+      clearAdvance(cat.id);
+      resetCategoryCounts(cat.id).catch(() => {});
+    }
+    setStates((prev) => {
+      const next = { ...prev };
+      for (const cat of categories) {
+        const list = dhikrsByCategory[cat.id] ?? [];
+        const counts: Record<string, number> = {};
+        for (const d of list) counts[d.id] = 0;
+        next[cat.id] = { currentDhikrIndex: 0, counts };
+      }
+      return next;
+    });
+  }, [categories, dhikrsByCategory, clearAdvance]);
+
+  const categoriesRef = useRef(categories);
+  categoriesRef.current = categories;
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const doCheck = async () => {
+      const today = todayKey();
+      const lastReset = await getMeta('lastFajrResetDate').catch(() => null);
+      if (lastReset === today) return;
+
+      const now = new Date();
+      let shouldReset = false;
+
+      if (location) {
+        try {
+          const ext = computeExtendedTimes(location, now, prayerMethodId, madhab);
+          if (now >= ext.fajr) shouldReset = true;
+        } catch {
+          shouldReset = true;
+        }
+      } else {
+        shouldReset = true;
+      }
+
+      if (shouldReset) {
+        const cats = categoriesRef.current;
+        for (const cat of cats) {
+          clearAdvance(cat.id);
+          resetCategoryCounts(cat.id).catch(() => {});
+        }
+        setStates((prev) => {
+          const next = { ...prev };
+          for (const cat of cats) {
+            const list = dhikrsByCategory[cat.id] ?? [];
+            const counts: Record<string, number> = {};
+            for (const d of list) counts[d.id] = 0;
+            next[cat.id] = { currentDhikrIndex: 0, counts };
+          }
+          return next;
+        });
+        await setMeta('lastFajrResetDate', today).catch(() => {});
+      }
+    };
+
+    doCheck();
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') doCheck();
+    });
+    return () => sub.remove();
+  }, [hydrated, location, prayerMethodId, madhab, dhikrsByCategory, clearAdvance]);
+
   return (
     <CounterContext.Provider
       value={{
@@ -415,6 +490,7 @@ export const CounterProvider: React.FC<{ children: React.ReactNode }> = ({ child
         nextDhikr,
         prevDhikr,
         resetAll,
+        resetAllCategories,
         seekToDhikr,
       }}
     >

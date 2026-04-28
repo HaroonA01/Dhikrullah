@@ -1,5 +1,5 @@
 {
-  "contentVersion": 1,
+  "contentVersion": 2,
   "dhikrs": [
     {
       "id": "all_day-01",
@@ -407,6 +407,45 @@
     {
       "id": "isha-03",
       "categoryId": "isha",
+      "arabic": "اللَّهُ أَكْبَرُ",
+      "transliteration": "Allahu Akbar",
+      "translation": "Allah is the Greatest",
+      "target": 34,
+      "description": null,
+      "reference": "Source: — (To be confirmed)",
+      "grade": null,
+      "audioFilename": null,
+      "sortOrder": 2
+    },
+    {
+      "id": "witr-01",
+      "categoryId": "witr",
+      "arabic": "سُبْحَانَ اللَّهِ",
+      "transliteration": "SubhanAllah",
+      "translation": "Glory be to Allah",
+      "target": 33,
+      "description": null,
+      "reference": "Narrated by —, Book —, Hadith —",
+      "grade": null,
+      "audioFilename": null,
+      "sortOrder": 0
+    },
+    {
+      "id": "witr-02",
+      "categoryId": "witr",
+      "arabic": "الْحَمْدُ لِلَّهِ",
+      "transliteration": "Alhamdulillah",
+      "translation": "All praise is due to Allah",
+      "target": 33,
+      "description": null,
+      "reference": "Reported in —, Chapter —, Number —",
+      "grade": null,
+      "audioFilename": null,
+      "sortOrder": 1
+    },
+    {
+      "id": "witr-03",
+      "categoryId": "witr",
       "arabic": "اللَّهُ أَكْبَرُ",
       "transliteration": "Allahu Akbar",
       "translation": "Allah is the Greatest",
