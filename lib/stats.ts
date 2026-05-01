@@ -4,6 +4,7 @@ export const META_KEY_LIFETIME_DHIKR = 'lifetime_total_dhikr';
 export const META_KEY_LIFETIME_SECONDS = 'lifetime_time_seconds';
 export const META_KEY_CURRENT_STREAK = 'current_streak';
 export const META_KEY_LONGEST_STREAK = 'longest_streak';
+export const META_KEY_LONGEST_STREAK_END = 'longest_streak_end_date';
 export const META_KEY_LAST_STREAK_DATE = 'last_streak_date';
 export const META_KEY_LIFETIME_BACKFILL_DONE = 'lifetime_backfill_done';
 
@@ -79,7 +80,10 @@ export async function bumpStreak(): Promise<number> {
   await setMeta(META_KEY_CURRENT_STREAK, String(next));
   await setMeta(META_KEY_LAST_STREAK_DATE, today);
   const longest = Number((await getMeta(META_KEY_LONGEST_STREAK)) ?? '0');
-  if (next > longest) await setMeta(META_KEY_LONGEST_STREAK, String(next));
+  if (next > longest) {
+    await setMeta(META_KEY_LONGEST_STREAK, String(next));
+    await setMeta(META_KEY_LONGEST_STREAK_END, today);
+  }
   return next;
 }
 

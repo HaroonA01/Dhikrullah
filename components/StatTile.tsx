@@ -9,9 +9,10 @@ interface Props {
   value: string;
   valueSuffix?: string;
   caption?: string;
+  valueColor?: string;
 }
 
-export function StatTile({ Icon, label, value, valueSuffix, caption }: Props) {
+export function StatTile({ Icon, label, value, valueSuffix, caption, valueColor }: Props) {
   const { palette } = useTheme();
   return (
     <GlassCard style={styles.card}>
@@ -20,7 +21,7 @@ export function StatTile({ Icon, label, value, valueSuffix, caption }: Props) {
       </View>
       <Text style={[styles.label, { color: palette.textMid }]}>{label}</Text>
       <Text
-        style={[styles.value, { color: palette.textDark }]}
+        style={[styles.value, { color: valueColor ?? palette.textDark }]}
         numberOfLines={1}
         adjustsFontSizeToFit
       >

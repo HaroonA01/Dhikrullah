@@ -166,6 +166,21 @@ export const getCompletionsInRange = (startDate: string, endDate: string) =>
       ),
     );
 
+export const getCompletionTimestampsInRange = (startDate: string, endDate: string) =>
+  db
+    .select({
+      date: categoryCompletionLog.date,
+      categoryId: categoryCompletionLog.categoryId,
+      completedAt: categoryCompletionLog.completedAt,
+    })
+    .from(categoryCompletionLog)
+    .where(
+      and(
+        gte(categoryCompletionLog.date, startDate),
+        lte(categoryCompletionLog.date, endDate),
+      ),
+    );
+
 export const getCategoryProgressInRange = (
   startDate: string,
   endDate: string,

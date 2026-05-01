@@ -1,5 +1,5 @@
 {
-  "contentVersion": 2,
+  "contentVersion": 3,
   "dhikrs": [
     {
       "id": "all_day-01",
@@ -229,9 +229,9 @@
       "transliteration": "SubhanAllah",
       "translation": "Glory be to Allah",
       "target": 33,
-      "description": null,
-      "reference": "Narrated by —, Book —, Hadith —",
-      "grade": null,
+      "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+      "reference": "Sahih al-Bukhari, Book 75, Hadith 329",
+      "grade": "Sahih",
       "audioFilename": null,
       "sortOrder": 0
     },
@@ -455,6 +455,19 @@
       "grade": null,
       "audioFilename": null,
       "sortOrder": 2
+    },
+    {
+      "id": "witr-04",
+      "categoryId": "witr",
+      "arabic": "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ",
+      "transliteration": "Allāhu lā ilāha illā Huwa, al-Ḥayyu al-Qayyūm, lā ta'khudhuhu sinatun wa lā nawm, lahu mā fī as-samāwāti wa mā fī al-arḍ, man dhā al-ladhī yashfa'u 'indahu illā bi-idhnih, ya'lamu mā bayna aydīhim wa mā khalfahum, wa lā yuḥīṭūna bi-shay'in min 'ilmihi illā bimā shā', wasi'a kursiyyuhu as-samāwāti wa al-arḍ, wa lā ya'ūduhu ḥifẓuhumā, wa huwa al-'Aliyyu al-'Aẓīm.",
+      "translation": "Allah — there is no deity except Him, the Ever-Living, the Self-Sustaining. Neither drowsiness overtakes Him nor sleep. To Him belongs whatever is in the heavens and whatever is on the earth. Who is it that can intercede with Him except by His permission? He knows what is before them and what will be after them, and they encompass not a thing of His knowledge except for what He wills. His Kursi extends over the heavens and the earth, and their preservation tires Him not. And He is the Most High, the Most Great.",
+      "target": 1,
+      "description": null,
+      "reference": "Quran 2:255",
+      "grade": "Quranic",
+      "audioFilename": null,
+      "sortOrder": 3
     },
     {
       "id": "before_bed-01",

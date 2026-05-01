@@ -65,7 +65,7 @@ export async function seedIfNeeded(): Promise<void> {
   const today = todayLocalISO();
   const last = await getMetaValue('last_seed_date');
   const storedVersion = await getMetaValue('content_version');
-  if (last === today && storedVersion === BUNDLED_CONTENT_VERSION) return;
+  // guard disabled — always re-seed during dev
 
   await db.transaction(async (tx) => {
     // 1. UPSERT categories

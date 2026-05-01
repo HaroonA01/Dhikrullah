@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-const COLORS = ['#2D6A4F', '#52B788', '#95D5B2', '#1B4332', '#40916C'];
+const DEFAULT_COLORS = ['#2D6A4F', '#52B788', '#95D5B2', '#1B4332', '#40916C'];
 const PIECE_COUNT = 40;
 const DURATION = 2800;
 const MAX_DELAY = 180;
@@ -30,7 +30,7 @@ function rand(min: number, max: number) {
   return Math.random() * (max - min) + min;
 }
 
-function buildPieces(width: number, height: number): PieceConfig[] {
+function buildPieces(width: number, height: number, colors: string[]): PieceConfig[] {
   const centerX = width / 2;
   return Array.from({ length: PIECE_COUNT }, () => {
     const dir = Math.random() < 0.5 ? -1 : 1;
@@ -46,19 +46,20 @@ function buildPieces(width: number, height: number): PieceConfig[] {
       rotateStart: rand(0, 360),
       rotateEnd: rand(360, 1080) * (dir as number),
       size: rand(5, 9),
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      color: colors[Math.floor(Math.random() * colors.length)],
       delay: rand(0, MAX_DELAY),
     };
   });
 }
 
-export function Confetti({ triggerKey }: { triggerKey: number }) {
+export function Confetti({ triggerKey, colors = DEFAULT_COLORS }: { triggerKey: number; colors?: string[] }) {
   const { width, height } = Dimensions.get('window');
-  const pieces = useMemo(() => buildPieces(width, height), [width, height]);
+  const pieces = useMemo(() => buildPieces(width, height, colors), [width, height, colors]);
   const [active, setActive] = useState(false);
+  const mountKeyRef = useRef(triggerKey);
 
   useEffect(() => {
-    if (triggerKey <= 0) return;
+    if (triggerKey <= 0 || triggerKey === mountKeyRef.current) return;
     setActive(true);
     const t = setTimeout(() => setActive(false), DURATION + MAX_DELAY + 200);
     return () => clearTimeout(t);

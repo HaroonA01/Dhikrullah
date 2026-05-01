@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { Dhikr } from '@/types';
 import { useTheme } from '@/context/ThemeContext';
@@ -18,19 +18,40 @@ export function DhikrPager({ dhikr }: { dhikr: Dhikr }) {
         onPageSelected={e => setPage(e.nativeEvent.position)}
       >
         <View key="ar" style={styles.page}>
-          <Text style={[styles.arabic, { color: palette.textDark }]}>
-            {dhikr.arabic}
-          </Text>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            <Text style={[styles.arabic, { color: palette.textDark }]}>
+              {dhikr.arabic}
+            </Text>
+          </ScrollView>
         </View>
         <View key="tr" style={styles.page}>
-          <Text style={[styles.translit, { color: palette.textMid }]}>
-            {dhikr.transliteration}
-          </Text>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            <Text style={[styles.translit, { color: palette.textMid }]}>
+              {dhikr.transliteration}
+            </Text>
+          </ScrollView>
         </View>
         <View key="en" style={styles.page}>
-          <Text style={[styles.translation, { color: palette.textMid }]}>
-            {dhikr.translation}
-          </Text>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            <Text style={[styles.translation, { color: palette.textMid }]}>
+              {dhikr.translation}
+            </Text>
+          </ScrollView>
         </View>
       </PagerView>
       <PageDots count={3} active={page} />
@@ -43,9 +64,16 @@ const styles = StyleSheet.create({
   pager: { flex: 1 },
   page: {
     flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   arabic: { fontSize: 30, textAlign: 'center', lineHeight: 48 },
   translit: { fontSize: 18, fontStyle: 'italic', textAlign: 'center' },

@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { SlideInRight, SlideOutLeft } from 'react-native-reanimated';
+import Animated, { SlideInRight, SlideOutLeft, runOnJS } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import {
   ChevronLeft,
   ChevronRight,
@@ -139,6 +140,14 @@ export default function CounterScreen() {
     ? (Math.min(count, currentDhikr.target) / currentDhikr.target) * 100
     : 0;
 
+  const tapGesture = useMemo(
+    () => Gesture.Tap()
+      .maxDeltaX(10)
+      .maxDeltaY(10)
+      .onEnd(() => { runOnJS(incrementCurrent)(); }),
+    [incrementCurrent],
+  );
+
   return (
     <View style={styles.root}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -177,43 +186,46 @@ export default function CounterScreen() {
               exiting={SlideOutLeft.duration(180)}
               style={styles.tileWrap}
             >
-              <Pressable onPress={incrementCurrent} style={styles.tilePressable}>
-                <MihrabTile width={TILE_WIDTH}>
-                  <View style={styles.countSlot}>
-                    <CountDisplay
-                      count={count}
-                      target={currentDhikr.target}
-                      reachedTarget={reachedTarget}
-                    />
-                  </View>
-                  <Pressable
-                    onPress={() => setInfoOpen(true)}
-                    style={[
-                      styles.cornerLeft,
-                      {
-                        backgroundColor: palette.glassBg,
-                        borderColor: palette.glassBorder,
-                      },
-                    ]}
-                    hitSlop={10}
-                  >
-                    <Info size={18} color={palette.accent} strokeWidth={2} />
-                  </Pressable>
-                  <View style={styles.cornerRight}>
-                    <AudioButton
-                      source={resolveAudio(currentDhikr.audioFilename)}
-                      dhikrId={currentDhikr.id}
-                    />
-                  </View>
-                  <View style={styles.pagerSlot}>
-                    <DhikrPager dhikr={currentDhikr} />
-                  </View>
-                </MihrabTile>
-              </Pressable>
+              <GestureDetector gesture={tapGesture}>
+                <View style={styles.tilePressable}>
+                  <MihrabTile width={TILE_WIDTH}>
+                    <View style={styles.countSlot}>
+                      <CountDisplay
+                        count={count}
+                        target={currentDhikr.target}
+                        reachedTarget={reachedTarget}
+                      />
+                    </View>
+                    <Pressable
+                      onPress={() => setInfoOpen(true)}
+                      style={[
+                        styles.cornerLeft,
+                        {
+                          backgroundColor: palette.glassBg,
+                          borderColor: palette.glassBorder,
+                        },
+                      ]}
+                      hitSlop={10}
+                    >
+                      <Info size={18} color={palette.accent} strokeWidth={2} />
+                    </Pressable>
+                    <View style={styles.cornerRight}>
+                      <AudioButton
+                        source={resolveAudio(currentDhikr.audioFilename)}
+                        dhikrId={currentDhikr.id}
+                      />
+                    </View>
+                    <View style={styles.pagerSlot}>
+                      <DhikrPager dhikr={currentDhikr} />
+                    </View>
+                  </MihrabTile>
+                </View>
+              </GestureDetector>
               <CardProgressRing
                 percent={dhikrPercent}
                 width={TILE_WIDTH}
                 height={TILE_HEIGHT}
+                stroke={4}
               />
             </Animated.View>
 
@@ -247,7 +259,10 @@ export default function CounterScreen() {
         </View>
       </View>
 
-      <Confetti triggerKey={confettiTick} />
+      <Confetti
+        triggerKey={confettiTick}
+        colors={[palette.accent, palette.accent, palette.accent, '#FFFFFF', '#FFFFFF']}
+      />
 
       <InfoModal
         visible={infoOpen}
@@ -331,7 +346,7 @@ const styles = StyleSheet.create({
   },
   countSlot: {
     position: 'absolute',
-    top: TILE_HEIGHT * 0.10,
+    top: TILE_HEIGHT * 0.07,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -339,7 +354,7 @@ const styles = StyleSheet.create({
   },
   cornerLeft: {
     position: 'absolute',
-    top: TILE_HEIGHT * 0.28,
+    top: TILE_HEIGHT * 0.24,
     left: 24,
     width: 34,
     height: 34,
@@ -351,13 +366,13 @@ const styles = StyleSheet.create({
   },
   cornerRight: {
     position: 'absolute',
-    top: TILE_HEIGHT * 0.28,
+    top: TILE_HEIGHT * 0.24,
     right: 24,
     zIndex: 2,
   },
   pagerSlot: {
     position: 'absolute',
-    top: TILE_HEIGHT * 0.42,
+    top: TILE_HEIGHT * 0.34,
     left: 0,
     right: 0,
     bottom: TILE_HEIGHT * 0.08,

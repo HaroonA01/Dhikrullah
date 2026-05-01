@@ -40,7 +40,7 @@ export function CircleProgress({ percent }: Props) {
             r={R}
             stroke={palette.accent}
             strokeWidth={STROKE}
-            fill={complete ? palette.accent : 'none'}
+            fill="none"
             strokeDasharray={`${dash} ${CIRCUMFERENCE}`}
             strokeLinecap="round"
             rotation={-90}
@@ -51,7 +51,7 @@ export function CircleProgress({ percent }: Props) {
 
       <View style={styles.center}>
         {complete ? (
-          <Check size={14} color="#FFFFFF" strokeWidth={3} />
+          <Check size={14} color={palette.accent} strokeWidth={3} />
         ) : (
           <Text style={[styles.pct, { color: palette.accent }]}>
             {Math.round(clamped)}

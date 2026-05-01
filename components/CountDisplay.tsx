@@ -56,15 +56,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   count: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: '700',
   },
   sep: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '400',
   },
   target: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '500',
   },
 });

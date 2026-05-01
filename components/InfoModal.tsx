@@ -1,4 +1,4 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { X } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -49,24 +49,18 @@ export function InfoModal({ visible, description, reference, grade, onClose }: P
             )}
 
             {hasDescription && (
-              <View style={styles.section}>
-                <Text style={[styles.label, { color: palette.accent }]}>Description</Text>
-                <Text style={[styles.value, { color: palette.textDark }]}>{description}</Text>
-              </View>
+              <Text style={[styles.description, { color: palette.textDark }]}>
+                {description}
+              </Text>
             )}
 
             {hasReference && (
-              <View style={styles.section}>
-                <Text style={[styles.label, { color: palette.accent }]}>Reference</Text>
-                <Text style={[styles.value, { color: palette.textDark }]}>{reference}</Text>
-              </View>
-            )}
-
-            {hasGrade && (
-              <View style={styles.section}>
-                <Text style={[styles.label, { color: palette.accent }]}>Grade</Text>
-                <Text style={[styles.value, { color: palette.textDark }]}>{grade}</Text>
-              </View>
+              <Text style={styles.citation}>
+                <Text style={{ color: palette.accent }}>{reference}</Text>
+                {hasGrade && (
+                  <Text style={{ color: palette.textDim }}>{` (${grade})`}</Text>
+                )}
+              </Text>
             )}
           </ScrollView>
         </Pressable>
@@ -106,20 +100,15 @@ const styles = StyleSheet.create({
   },
   body: {
     paddingTop: 8,
-    gap: 16,
+    gap: 12,
   },
-  section: {
-    gap: 6,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  value: {
+  description: {
     fontSize: 15,
     lineHeight: 22,
+  },
+  citation: {
+    fontSize: 13,
+    lineHeight: 20,
   },
   empty: {
     fontSize: 14,

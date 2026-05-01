@@ -46,6 +46,7 @@ const MONTH_ABBREV = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function parseDateKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
@@ -59,6 +60,22 @@ function labelFor(date: string, range: ChartRange): string {
   return MONTH_ABBREV[d.getMonth()];
 }
 
+function footerFor(
+  selectedIndex: number | null,
+  data: ChartDatum[],
+  maxValue: number,
+): string {
+  if (selectedIndex !== null && data[selectedIndex]) {
+    const d = data[selectedIndex];
+    const date = parseDateKey(d.date);
+    const label = `${DAY_NAMES[date.getDay()]}, ${date.getDate()} ${MONTH_ABBREV[date.getMonth()]}`;
+    return `${label} · ${d.value.toLocaleString()} dhikr`;
+  }
+  return maxValue === 0
+    ? 'No activity yet in this range'
+    : `Peak: ${maxValue.toLocaleString()} dhikr`;
+}
+
 interface BarProps {
   x: number;
   width: number;
@@ -67,19 +84,25 @@ interface BarProps {
   innerHeight: number;
   baseY: number;
   fill: string;
+  dimmed: boolean;
 }
 
-function AnimatedBar({ x, width, value, maxValue, innerHeight, baseY, fill }: BarProps) {
+function AnimatedBar({ x, width, value, maxValue, innerHeight, baseY, fill, dimmed }: BarProps) {
   const ratio = useSharedValue(0);
+  const opacity = useSharedValue(1);
 
   useEffect(() => {
     const target = maxValue > 0 ? Math.max(0, value) / maxValue : 0;
     ratio.value = withTiming(target, { duration: 450 });
   }, [value, maxValue, ratio]);
 
+  useEffect(() => {
+    opacity.value = withTiming(dimmed ? 0.3 : 1, { duration: 200 });
+  }, [dimmed, opacity]);
+
   const animatedProps = useAnimatedProps(() => {
     const h = Math.max(2, ratio.value * innerHeight);
-    return { height: h, y: baseY - h };
+    return { height: h, y: baseY - h, opacity: opacity.value };
   });
 
   return (
@@ -97,6 +120,11 @@ function AnimatedBar({ x, width, value, maxValue, innerHeight, baseY, fill }: Ba
 export function StatBarChart({ title, data, range, onRangeChange }: Props) {
   const { palette } = useTheme();
   const [chartWidth, setChartWidth] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    setSelectedIndex(null);
+  }, [data, range]);
 
   const onLayout = (e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
@@ -122,6 +150,8 @@ export function StatBarChart({ title, data, range, onRangeChange }: Props) {
       slotCenter: i * slot + slot / 2,
     }));
   }, [chartWidth, data]);
+
+  const hasSelection = selectedIndex !== null;
 
   return (
     <GlassCard style={styles.card}>
@@ -176,6 +206,7 @@ export function StatBarChart({ title, data, range, onRangeChange }: Props) {
                 innerHeight={innerHeight}
                 baseY={baseY}
                 fill={palette.accent}
+                dimmed={hasSelection && selectedIndex !== i}
               />
             ))}
           </Svg>
@@ -197,12 +228,28 @@ export function StatBarChart({ title, data, range, onRangeChange }: Props) {
             ))}
           </View>
         )}
+
+        {chartWidth > 0 && (
+          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+            {barLayout.map((b, i) => (
+              <Pressable
+                key={data[i]?.date ?? i}
+                style={{
+                  position: 'absolute',
+                  left: b.x,
+                  width: b.width,
+                  top: TOP_PADDING,
+                  bottom: BOTTOM_LABEL_AREA,
+                }}
+                onPress={() => setSelectedIndex(prev => prev === i ? null : i)}
+              />
+            ))}
+          </View>
+        )}
       </View>
 
       <Text style={[styles.footer, { color: palette.textDim }]}>
-        {maxValue === 0
-          ? 'No activity yet in this range'
-          : `Peak: ${maxValue.toLocaleString()} dhikr`}
+        {footerFor(selectedIndex, data, maxValue)}
       </Text>
     </GlassCard>
   );

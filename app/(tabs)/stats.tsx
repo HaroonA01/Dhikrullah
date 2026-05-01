@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckCircle2, Clock, Flame, Sparkles } from 'lucide-react-native';
 import { GradientBackground } from '@/components/GradientBackground';
 import { StatTile } from '@/components/StatTile';
+import { TimeSpentTile } from '@/components/TimeSpentTile';
 import {
   StatBarChart,
   type ChartDatum,
@@ -21,23 +22,36 @@ import { useDhikrContent } from '@/context/CounterContext';
 import { useTheme } from '@/context/ThemeContext';
 import {
   getCategoryProgressInRange,
-  getDailyStatsForDate,
+  getCompletionTimestampsInRange,
   getDailyStatsRange,
   getMeta,
 } from '@/db/queries';
 import {
-  currentWeekDays,
   formatHM,
   getDisplayStreak,
   lastNDays,
   lastNMonths,
   META_KEY_LIFETIME_DHIKR,
   META_KEY_LIFETIME_SECONDS,
+  META_KEY_LONGEST_STREAK,
+  META_KEY_LONGEST_STREAK_END,
   monthEndDateKey,
   todayKey,
 } from '@/lib/stats';
 
 const MONTHS_RANGE = 6;
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function formatStreakRange(count: number, endKey: string | null): string {
+  if (!endKey || count === 0) return '—';
+  const [ey, em, ed] = endKey.split('-').map(Number);
+  const end = new Date(ey, em - 1, ed);
+  const start = new Date(ey, em - 1, ed - (count - 1));
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    return `${MONTH_NAMES[start.getMonth()]} ${start.getDate()} – ${end.getDate()}`;
+  }
+  return `${MONTH_NAMES[start.getMonth()]} ${start.getDate()} – ${MONTH_NAMES[end.getMonth()]} ${end.getDate()}`;
+}
 
 async function buildChartData(range: ChartRange): Promise<ChartDatum[]> {
   if (range === '6m') {
@@ -64,37 +78,75 @@ export default function StatsScreen() {
   const insets = useSafeAreaInsets();
   const { palette } = useTheme();
   const { categories } = useDhikrContent();
+
   const [streak, setStreak] = useState(0);
+  const [longestStreak, setLongestStreak] = useState(0);
+  const [longestStreakEnd, setLongestStreakEnd] = useState<string | null>(null);
   const [lifetimeDhikr, setLifetimeDhikr] = useState(0);
   const [lifetimeSeconds, setLifetimeSeconds] = useState(0);
   const [todayCompleted, setTodayCompleted] = useState(0);
+  const [todaySeconds, setTodaySeconds] = useState(0);
+  const [yesterdaySeconds, setYesterdaySeconds] = useState(0);
+  const [thisWeekSeconds, setThisWeekSeconds] = useState(0);
+  const [lastWeekSeconds, setLastWeekSeconds] = useState(0);
   const [chartRange, setChartRange] = useState<ChartRange>('7d');
   const [chartData, setChartData] = useState<ChartDatum[]>([]);
-  const [weekDates, setWeekDates] = useState<string[]>(() => currentWeekDays());
+  const [heatmapDates, setHeatmapDates] = useState<string[]>(() => lastNDays(30));
   const [percents, setPercents] = useState<Map<string, number>>(new Map());
-  const [today, setToday] = useState<string>(() => todayKey());
+  const [completedAtMap, setCompletedAtMap] = useState<Map<string, number>>(new Map());
   const [refreshing, setRefreshing] = useState(false);
 
   const loadAll = useCallback(async () => {
-    const week = currentWeekDays();
+    const days30 = lastNDays(30);
+    const days14 = lastNDays(14);
     const todayK = todayKey();
-    const [s, lt, ls, todayRows, chart, progressRows] = await Promise.all([
+
+    const [
+      s,
+      lt,
+      ls,
+      longestCount,
+      longestEnd,
+      chart,
+      progressRows,
+      completionRows,
+      timeRangeRows,
+    ] = await Promise.all([
       getDisplayStreak(),
       getMeta(META_KEY_LIFETIME_DHIKR),
       getMeta(META_KEY_LIFETIME_SECONDS),
-      getDailyStatsForDate(todayK),
+      getMeta(META_KEY_LONGEST_STREAK),
+      getMeta(META_KEY_LONGEST_STREAK_END),
       buildChartData(chartRange),
-      getCategoryProgressInRange(week[0], week[6]),
+      getCategoryProgressInRange(days30[0], days30[29]),
+      getCompletionTimestampsInRange(days30[0], days30[29]),
+      getDailyStatsRange(days14[0], days14[13]),
     ]);
+
     setStreak(s);
+    setLongestStreak(Number(longestCount ?? '0'));
+    setLongestStreakEnd(longestEnd);
     setLifetimeDhikr(Number(lt ?? '0'));
     setLifetimeSeconds(Number(ls ?? '0'));
-    setTodayCompleted(todayRows[0]?.categoriesCompleted ?? 0);
     setChartData(chart);
-    setWeekDates(week);
-    setToday(todayK);
+    setHeatmapDates(days30);
     setPercents(
       new Map(progressRows.map((r) => [`${r.date}|${r.categoryId}`, r.percent])),
+    );
+    setCompletedAtMap(
+      new Map(completionRows.map((r) => [`${r.date}|${r.categoryId}`, r.completedAt])),
+    );
+
+    const timeByDate = new Map(timeRangeRows.map((r) => [r.date, r]));
+    const todayRow = timeByDate.get(todayK);
+    setTodayCompleted(todayRow?.categoriesCompleted ?? 0);
+    setTodaySeconds(todayRow?.timeSeconds ?? 0);
+    setYesterdaySeconds(timeByDate.get(days14[12])?.timeSeconds ?? 0);
+    setThisWeekSeconds(
+      days14.slice(7).reduce((sum, d) => sum + (timeByDate.get(d)?.timeSeconds ?? 0), 0),
+    );
+    setLastWeekSeconds(
+      days14.slice(0, 7).reduce((sum, d) => sum + (timeByDate.get(d)?.timeSeconds ?? 0), 0),
     );
   }, [chartRange]);
 
@@ -122,6 +174,12 @@ export default function StatsScreen() {
   }, [loadAll]);
 
   const totalCategories = categories.length;
+  const todayK = todayKey();
+
+  // If current streak is at least as long as recorded longest, it's ongoing — use today as end
+  const effectiveLongestEnd =
+    longestStreak > 0 && streak >= longestStreak ? todayK : longestStreakEnd;
+  const longestStreakCaption = formatStreakRange(longestStreak, effectiveLongestEnd);
 
   return (
     <View style={styles.root}>
@@ -147,12 +205,30 @@ export default function StatsScreen() {
           />
         }
       >
+        {/* Row 1: Current Streak | Longest Streak */}
         <View style={styles.row}>
           <StatTile
             Icon={Flame}
             label="Current Streak"
             value={streak === 1 ? '1 day' : `${streak} days`}
             caption="+1 each day a full category is completed"
+          />
+          <StatTile
+            Icon={Flame}
+            label="Longest Streak"
+            value={longestStreak === 1 ? '1 day' : `${longestStreak} days`}
+            valueColor={palette.accent}
+            caption={longestStreakCaption}
+          />
+        </View>
+
+        {/* Row 2: Time Spent | Total Time */}
+        <View style={styles.row}>
+          <TimeSpentTile
+            todaySeconds={todaySeconds}
+            yesterdaySeconds={yesterdaySeconds}
+            thisWeekSeconds={thisWeekSeconds}
+            lastWeekSeconds={lastWeekSeconds}
           />
           <StatTile
             Icon={Clock}
@@ -162,6 +238,7 @@ export default function StatsScreen() {
           />
         </View>
 
+        {/* Row 3: Lifetime Dhikr | Today */}
         <View style={styles.row}>
           <StatTile
             Icon={Sparkles}
@@ -187,9 +264,9 @@ export default function StatsScreen() {
 
         <CategoryHeatmap
           categories={categories}
-          weekDates={weekDates}
-          todayKey={today}
+          dates={heatmapDates}
           percents={percents}
+          completedAtMap={completedAtMap}
         />
       </ScrollView>
     </View>
