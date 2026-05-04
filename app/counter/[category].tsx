@@ -68,6 +68,7 @@ export default function CounterScreen() {
   } = useCounter(categoryId);
   const { toggle, isFavourite } = useFavourites();
   const [infoOpen, setInfoOpen] = useState(false);
+  const [tileRowH, setTileRowH] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -179,7 +180,7 @@ export default function CounterScreen() {
 
       <View style={[styles.content, { paddingBottom: insets.bottom + 16 }]}>
         {currentDhikr ? (
-          <View style={styles.tileRow}>
+          <View style={styles.tileRow} onLayout={e => setTileRowH(e.nativeEvent.layout.height)}>
             <Animated.View
               key={currentDhikr.id}
               entering={SlideInRight.duration(260)}
@@ -229,10 +230,20 @@ export default function CounterScreen() {
               />
             </Animated.View>
 
-            <View style={styles.arrowLeft} pointerEvents="box-none">
+            <View
+              style={[styles.arrowLeft, tileRowH > 0 && {
+                top: (tileRowH - TILE_HEIGHT) / 2 + TILE_HEIGHT * 0.60 - 32,
+              }]}
+              pointerEvents="box-none"
+            >
               <GhostArrow Icon={ChevronLeft} onPress={prevDhikr} />
             </View>
-            <View style={styles.arrowRight} pointerEvents="box-none">
+            <View
+              style={[styles.arrowRight, tileRowH > 0 && {
+                top: (tileRowH - TILE_HEIGHT) / 2 + TILE_HEIGHT * 0.60 - 32,
+              }]}
+              pointerEvents="box-none"
+            >
               <GhostArrow Icon={ChevronRight} onPress={nextDhikr} />
             </View>
           </View>
@@ -326,14 +337,12 @@ const styles = StyleSheet.create({
   arrowLeft: {
     position: 'absolute',
     left: 12,
-    top: '50%',
-    marginTop: -22,
+    top: 0,
   },
   arrowRight: {
     position: 'absolute',
     right: 12,
-    top: '50%',
-    marginTop: -22,
+    top: 0,
   },
   tileWrap: {
     width: TILE_WIDTH,
@@ -372,7 +381,7 @@ const styles = StyleSheet.create({
   },
   pagerSlot: {
     position: 'absolute',
-    top: TILE_HEIGHT * 0.34,
+    top: TILE_HEIGHT * 0.28,
     left: 0,
     right: 0,
     bottom: TILE_HEIGHT * 0.08,

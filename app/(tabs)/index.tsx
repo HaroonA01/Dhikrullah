@@ -133,7 +133,7 @@ export default function Home() {
     .onEnd(e => {
       const wasExpanded = expandTarget.value === 1;
       const flungUp = e.velocityY < -FLING_VELOCITY;
-      const flungDown = e.velocityY > FLING_VELOCITY;
+      const flungDown = e.velocityY > FLING_VELOCITY && scrollY.value <= 2;
       let shouldExpand: boolean;
       if (flungUp) shouldExpand = true;
       else if (flungDown) shouldExpand = false;
