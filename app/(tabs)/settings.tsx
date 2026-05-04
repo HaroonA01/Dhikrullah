@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Audio } from 'expo-av';
 import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -22,14 +23,19 @@ import {
   ChevronUp,
   Compass,
   Coffee,
+  Code,
   Mail,
   MapPin,
   Palette as PaletteIcon,
+  Play,
   Scale,
   Sparkles,
   SunMoon,
   Tag,
+  ChartNoAxesColumnIncreasing,
+  Type,
   Vibrate,
+  Volume2,
 } from 'lucide-react-native';
 import Animated, {
   useAnimatedStyle,
@@ -49,6 +55,8 @@ import { METHODS, type Madhab, type MethodId } from '@/lib/prayer';
 import { requestDeviceLocation, type LocationData } from '@/lib/location';
 import { requestNotificationPermission } from '@/lib/notifications';
 import { FEEDBACK_SUBJECT, SUPPORT_EMAIL } from '@/constants/about';
+import { ARABIC_FONTS, ENGLISH_FONTS, TEXT_SIZE_OPTIONS } from '@/lib/fonts';
+import { NOTIF_SOUND_LABELS, NOTIF_SOUND_ASSETS, type NotifSoundId } from '@/lib/soundMap';
 import type { CategoryId } from '@/types';
 
 const MODES: { id: Mode; label: string }[] = [
@@ -118,6 +126,14 @@ export default function SettingsScreen() {
     setAllNotifEnabled,
     notifOffset,
     setNotifOffset,
+    arabicFont,
+    setArabicFont,
+    englishFont,
+    setEnglishFont,
+    textSize,
+    setTextSize,
+    notifSound,
+    setNotifSound,
   } = usePrefs();
 
   const [methodPickerOpen, setMethodPickerOpen] = useState(false);
@@ -125,6 +141,9 @@ export default function SettingsScreen() {
   const [citySearchOpen, setCitySearchOpen] = useState(false);
   const [timePickerOpen, setTimePickerOpen] = useState<'waking_up' | 'before_bed' | null>(null);
   const [expandedPrayers, setExpandedPrayers] = useState<Set<CategoryId>>(new Set());
+  const [arabicFontOpen, setArabicFontOpen] = useState(false);
+  const [englishFontOpen, setEnglishFontOpen] = useState(false);
+  const [soundPickerOpen, setSoundPickerOpen] = useState(false);
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const currentMethod = METHODS.find((m) => m.id === prayerMethodId) ?? METHODS[0];
@@ -290,6 +309,36 @@ export default function SettingsScreen() {
           />
         </SettingsSection>
 
+        <SettingsSection title="Typography">
+          <SettingsRow
+            label="Arabic Font"
+            Icon={Type}
+            detail={ARABIC_FONTS.find(f => f.id === arabicFont)?.label}
+            showChevron
+            onPress={() => setArabicFontOpen(true)}
+          />
+          <SettingsRow
+            label="English Font"
+            Icon={Type}
+            detail={ENGLISH_FONTS.find(f => f.id === englishFont)?.label}
+            showChevron
+            onPress={() => setEnglishFontOpen(true)}
+          />
+          <SettingsRow
+            label="Text Size"
+            Icon={ChartNoAxesColumnIncreasing}
+            isLast
+            trailing={
+              <Segmented
+                options={TEXT_SIZE_OPTIONS}
+                value={textSize}
+                onChange={setTextSize}
+                palette={palette}
+              />
+            }
+          />
+        </SettingsSection>
+
         <SettingsSection title="Prayer Times">
           <SettingsRow
             label="Location"
@@ -339,6 +388,13 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         <SettingsSection title="Notifications">
+          <SettingsRow
+            label="Notification Sound"
+            detail={NOTIF_SOUND_LABELS[notifSound]}
+            Icon={Volume2}
+            showChevron
+            onPress={() => setSoundPickerOpen(true)}
+          />
           <SettingsRow
             label="All Notifications"
             detail={allEnabled ? 'All reminders on' : 'All reminders off'}
@@ -427,6 +483,13 @@ export default function SettingsScreen() {
             Icon={Mail}
             showChevron
             onPress={openContact}
+          />
+          <SettingsRow
+            label="Open Source"
+            detail="View on GitHub"
+            Icon={Code}
+            showChevron
+            onPress={() => Linking.openURL('https://github.com')}
             isLast
           />
         </SettingsSection>
@@ -470,6 +533,44 @@ export default function SettingsScreen() {
           setTimePickerOpen(null);
         }}
         onClose={() => setTimePickerOpen(null)}
+        palette={palette}
+      />
+
+      <FontPickerModal
+        visible={arabicFontOpen}
+        title="Arabic Font"
+        options={ARABIC_FONTS}
+        currentId={arabicFont}
+        onSelect={(id) => {
+          setArabicFont(id);
+          setArabicFontOpen(false);
+        }}
+        onClose={() => setArabicFontOpen(false)}
+        palette={palette}
+        isArabic
+      />
+
+      <FontPickerModal
+        visible={englishFontOpen}
+        title="English Font"
+        options={ENGLISH_FONTS}
+        currentId={englishFont}
+        onSelect={(id) => {
+          setEnglishFont(id);
+          setEnglishFontOpen(false);
+        }}
+        onClose={() => setEnglishFontOpen(false)}
+        palette={palette}
+      />
+
+      <SoundPickerModal
+        visible={soundPickerOpen}
+        currentId={notifSound}
+        onSelect={(id) => {
+          setNotifSound(id);
+          setSoundPickerOpen(false);
+        }}
+        onClose={() => setSoundPickerOpen(false)}
         palette={palette}
       />
     </View>
@@ -792,6 +893,177 @@ const segStyles = StyleSheet.create({
   },
 });
 
+interface FontPickerModalProps<T extends string> {
+  visible: boolean;
+  title: string;
+  options: readonly { id: T; label: string; fontFamily: string | null }[];
+  currentId: T;
+  onSelect: (id: T) => void;
+  onClose: () => void;
+  palette: ReturnType<typeof useTheme>['palette'];
+  isArabic?: boolean;
+}
+
+function FontPickerModal<T extends string>({
+  visible,
+  title,
+  options,
+  currentId,
+  onSelect,
+  onClose,
+  palette,
+  isArabic,
+}: FontPickerModalProps<T>) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={pickerStyles.backdrop} onPress={onClose}>
+        <Pressable
+          style={[
+            pickerStyles.card,
+            { backgroundColor: '#FFFFFF', borderColor: palette.glassBorder, borderWidth: 1, borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20, elevation: 10 },
+          ]}
+          onPress={() => {}}
+        >
+          <View style={{ height: 3, width: 40, backgroundColor: palette.accent, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
+          <Text style={[pickerStyles.title, { color: palette.textDark }]}>
+            {title}
+          </Text>
+          <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+            {options.map((opt, i) => {
+              const active = opt.id === currentId;
+              const previewText = isArabic ? 'ذكر الله' : 'Dhikrullah';
+              return (
+                <Pressable
+                  key={opt.id}
+                  onPress={() => onSelect(opt.id)}
+                  style={({ pressed }) => [
+                    pickerStyles.row,
+                    active && { backgroundColor: palette.accentLight, borderRadius: 8 },
+                    i !== options.length - 1 && {
+                      borderBottomColor: palette.glassBorder,
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                    },
+                    pressed && { opacity: 0.6 },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      pickerStyles.rowLabel,
+                      {
+                        color: palette.textDark,
+                        fontWeight: active ? '700' : '500',
+                        fontFamily: opt.fontFamily ?? undefined,
+                      },
+                    ]}
+                  >
+                    {previewText}
+                  </Text>
+                  <View style={{ flex: 1 }} />
+                  <Text
+                    style={[
+                      {
+                        color: palette.textMid,
+                        fontSize: 13,
+                        fontWeight: active ? '700' : '500',
+                      },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                  {active ? (
+                    <Check size={18} color={palette.accent} strokeWidth={2.5} style={{ marginLeft: 8 }} />
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+interface SoundPickerModalProps {
+  visible: boolean;
+  currentId: NotifSoundId;
+  onSelect: (id: NotifSoundId) => void;
+  onClose: () => void;
+  palette: ReturnType<typeof useTheme>['palette'];
+}
+
+function SoundPickerModal({ visible, currentId, onSelect, onClose, palette }: SoundPickerModalProps) {
+  const previewRef = useRef<Audio.Sound | null>(null);
+
+  useEffect(() => {
+    if (!visible) {
+      previewRef.current?.unloadAsync().catch(() => {});
+      previewRef.current = null;
+    }
+  }, [visible]);
+
+  const playPreview = async (id: NotifSoundId) => {
+    const asset = NOTIF_SOUND_ASSETS[id];
+    if (!asset) return;
+    previewRef.current?.unloadAsync().catch(() => {});
+    const { sound } = await Audio.Sound.createAsync(asset, { shouldPlay: true });
+    previewRef.current = sound;
+  };
+
+  const SOUND_IDS: NotifSoundId[] = ['default', 'chime', 'bell', 'adhan', 'none'];
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={pickerStyles.backdrop} onPress={onClose}>
+        <Pressable
+          style={[
+            pickerStyles.card,
+            { backgroundColor: '#FFFFFF', borderColor: palette.glassBorder, borderWidth: 1, borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20, elevation: 10 },
+          ]}
+          onPress={() => {}}
+        >
+          <View style={{ height: 3, width: 40, backgroundColor: palette.accent, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
+          <Text style={[pickerStyles.title, { color: palette.textDark }]}>
+            Notification Sound
+          </Text>
+          <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+            {SOUND_IDS.map((id, i) => {
+              const active = id === currentId;
+              const previewable = id !== 'default' && id !== 'none';
+              return (
+                <Pressable
+                  key={id}
+                  onPress={() => onSelect(id)}
+                  style={({ pressed }) => [
+                    pickerStyles.row,
+                    active && { backgroundColor: palette.accentLight, borderRadius: 8 },
+                    i !== SOUND_IDS.length - 1 && {
+                      borderBottomColor: palette.glassBorder,
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                    },
+                    pressed && { opacity: 0.6 },
+                  ]}
+                >
+                  <Text style={[pickerStyles.rowLabel, { color: palette.textDark, fontWeight: active ? '700' : '500' }]}>
+                    {NOTIF_SOUND_LABELS[id]}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    {previewable && (
+                      <Pressable onPress={() => playPreview(id)} hitSlop={8}>
+                        <Play size={16} color={palette.accent} strokeWidth={2} />
+                      </Pressable>
+                    )}
+                    {active && <Check size={18} color={palette.accent} strokeWidth={2.5} />}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 interface MethodPickerProps {
   visible: boolean;
   currentId: MethodId;
@@ -801,17 +1073,17 @@ interface MethodPickerProps {
 }
 
 function MethodPicker({ visible, currentId, onSelect, onClose, palette }: MethodPickerProps) {
-  const cardBg = palette.scheme === 'dark' ? palette.bgMid : '#FFFFFF';
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={pickerStyles.backdrop} onPress={onClose}>
         <Pressable
           style={[
             pickerStyles.card,
-            { backgroundColor: cardBg, borderColor: palette.glassBorder },
+            { backgroundColor: '#FFFFFF', borderColor: palette.glassBorder, borderWidth: 1, borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20, elevation: 10 },
           ]}
           onPress={() => {}}
         >
+          <View style={{ height: 3, width: 40, backgroundColor: palette.accent, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
           <Text style={[pickerStyles.title, { color: palette.textDark }]}>
             Calculation method
           </Text>
@@ -824,6 +1096,7 @@ function MethodPicker({ visible, currentId, onSelect, onClose, palette }: Method
                   onPress={() => onSelect(m.id)}
                   style={({ pressed }) => [
                     pickerStyles.row,
+                    active && { backgroundColor: palette.accentLight, borderRadius: 8 },
                     i !== METHODS.length - 1 && {
                       borderBottomColor: palette.glassBorder,
                       borderBottomWidth: StyleSheet.hairlineWidth,

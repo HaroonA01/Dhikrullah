@@ -19,6 +19,8 @@ import {
 } from '@/lib/prayer';
 import type { LocationData } from '@/lib/location';
 import type { CategoryId } from '@/types';
+import type { ArabicFontId, EnglishFontId, TextSizeId } from '@/lib/fonts';
+import type { NotifSoundId } from '@/lib/soundMap';
 
 const KEY_HAPTIC_INDIV = 'prefs.hapticsIndividual';
 const KEY_HAPTIC_COMPLETE = 'prefs.hapticsComplete';
@@ -30,6 +32,10 @@ const KEY_WAKING_UP_MINUTES = 'prefs.wakingUpMinutes';
 const KEY_BEFORE_BED_MINUTES = 'prefs.beforeBedMinutes';
 const KEY_NOTIF_ENABLED = 'prefs.notifEnabled';
 const KEY_NOTIF_OFFSET = 'prefs.notifOffset';
+const KEY_ARABIC_FONT = 'prefs.arabicFont';
+const KEY_ENGLISH_FONT = 'prefs.englishFont';
+const KEY_TEXT_SIZE = 'prefs.textSize';
+const KEY_NOTIF_SOUND = 'prefs.notifSound';
 
 export type NotifOffset = 0 | 10 | 30 | 60;
 
@@ -84,6 +90,14 @@ interface PrefsContextValue {
   setAllNotifEnabled: (v: boolean) => void;
   notifOffset: Partial<Record<CategoryId, NotifOffset>>;
   setNotifOffset: (id: CategoryId, v: NotifOffset) => void;
+  arabicFont: ArabicFontId;
+  setArabicFont: (v: ArabicFontId) => void;
+  englishFont: EnglishFontId;
+  setEnglishFont: (v: EnglishFontId) => void;
+  textSize: TextSizeId;
+  setTextSize: (v: TextSizeId) => void;
+  notifSound: NotifSoundId;
+  setNotifSound: (v: NotifSoundId) => void;
 }
 
 const PrefsContext = createContext<PrefsContextValue | null>(null);
@@ -96,10 +110,14 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [madhab, setMad] = useState<Madhab>('shafi');
   const [location, setLoc] = useState<LocationData | null>(null);
   const [locationPromptShown, setLPS] = useState(false);
-  const [wakingUpMinutes, setWUM] = useState(420); // 07:00
-  const [beforeBedMinutes, setBBM] = useState(1320); // 22:00
+  const [wakingUpMinutes, setWUM] = useState(450); // 07:30
+  const [beforeBedMinutes, setBBM] = useState(1350); // 22:30
   const [notifEnabled, setNE] = useState<Record<CategoryId, boolean>>(DEFAULT_NOTIF_ENABLED);
   const [notifOffset, setNO] = useState<Partial<Record<CategoryId, NotifOffset>>>(DEFAULT_NOTIF_OFFSET);
+  const [arabicFont, setAF] = useState<ArabicFontId>('system');
+  const [englishFont, setEF] = useState<EnglishFontId>('system');
+  const [textSize, setTS] = useState<TextSizeId>('md');
+  const [notifSound, setNS] = useState<NotifSoundId>('default');
 
   useEffect(() => {
     let cancelled = false;
@@ -107,7 +125,7 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const tryHydrate = async () => {
       attempts += 1;
       try {
-        const [hi, hc, pm, mad, locStr, lps, wum, bbm, ne, no] = await Promise.all([
+        const [hi, hc, pm, mad, locStr, lps, wum, bbm, ne, no, af, ef, ts, ns] = await Promise.all([
           getMeta(KEY_HAPTIC_INDIV),
           getMeta(KEY_HAPTIC_COMPLETE),
           getMeta(KEY_PRAYER_METHOD),
@@ -118,6 +136,10 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           getMeta(KEY_BEFORE_BED_MINUTES),
           getMeta(KEY_NOTIF_ENABLED),
           getMeta(KEY_NOTIF_OFFSET),
+          getMeta(KEY_ARABIC_FONT),
+          getMeta(KEY_ENGLISH_FONT),
+          getMeta(KEY_TEXT_SIZE),
+          getMeta(KEY_NOTIF_SOUND),
         ]);
         if (cancelled) return;
         const hiVal = hi !== '0';
@@ -150,6 +172,10 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (no) {
           try { setNO({ ...DEFAULT_NOTIF_OFFSET, ...JSON.parse(no) }); } catch {}
         }
+        if (af === 'amiri' || af === 'scheherazade' || af === 'noto-naskh' || af === 'cairo' || af === 'tajawal' || af === 'lateef') setAF(af);
+        if (ef === 'lato' || ef === 'merriweather' || ef === 'nunito' || ef === 'poppins' || ef === 'playfair' || ef === 'raleway') setEF(ef);
+        if (ts === 'sm' || ts === 'lg' || ts === 'xl') setTS(ts);
+        if (ns === 'chime' || ns === 'bell' || ns === 'adhan' || ns === 'none') setNS(ns);
         setHydrated(true);
       } catch {
         if (cancelled || attempts >= 20) {
@@ -233,6 +259,26 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   }, []);
 
+  const setArabicFont = useCallback((v: ArabicFontId) => {
+    setAF(v);
+    setMeta(KEY_ARABIC_FONT, v).catch(() => {});
+  }, []);
+
+  const setEnglishFont = useCallback((v: EnglishFontId) => {
+    setEF(v);
+    setMeta(KEY_ENGLISH_FONT, v).catch(() => {});
+  }, []);
+
+  const setTextSize = useCallback((v: TextSizeId) => {
+    setTS(v);
+    setMeta(KEY_TEXT_SIZE, v).catch(() => {});
+  }, []);
+
+  const setNotifSound = useCallback((v: NotifSoundId) => {
+    setNS(v);
+    setMeta(KEY_NOTIF_SOUND, v).catch(() => {});
+  }, []);
+
   const value = useMemo<PrefsContextValue>(
     () => ({
       hydrated,
@@ -257,6 +303,14 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setAllNotifEnabled,
       notifOffset,
       setNotifOffset,
+      arabicFont,
+      setArabicFont,
+      englishFont,
+      setEnglishFont,
+      textSize,
+      setTextSize,
+      notifSound,
+      setNotifSound,
     }),
     [
       hydrated,
@@ -270,6 +324,10 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       beforeBedMinutes,
       notifEnabled,
       notifOffset,
+      arabicFont,
+      englishFont,
+      textSize,
+      notifSound,
       setHapticsIndividual,
       setHapticsComplete,
       setPrayerMethodId,
@@ -281,6 +339,10 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setNotifEnabled,
       setAllNotifEnabled,
       setNotifOffset,
+      setArabicFont,
+      setEnglishFont,
+      setTextSize,
+      setNotifSound,
     ],
   );
 

@@ -6,7 +6,7 @@ import { Check } from 'lucide-react-native';
 const SIZE = 40;
 const STROKE = 3.5;
 const R = (SIZE - STROKE) / 2;
-const CIRCUMFERENCE = 2 * Math.PI * R;
+const CIRCUMFERENCE = 138;
 
 interface Props {
   percent: number; // 0–100

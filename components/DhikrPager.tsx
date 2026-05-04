@@ -3,11 +3,17 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { Dhikr } from '@/types';
 import { useTheme } from '@/context/ThemeContext';
+import { usePrefs } from '@/context/PrefsContext';
+import { ARABIC_FONTS, ENGLISH_FONTS, ARABIC_SIZE, TRANSLIT_SIZE, TRANSLATION_SIZE } from '@/lib/fonts';
 import { PageDots } from './PageDots';
 
 export function DhikrPager({ dhikr }: { dhikr: Dhikr }) {
   const { palette } = useTheme();
+  const { arabicFont, englishFont, textSize } = usePrefs();
   const [page, setPage] = useState(0);
+
+  const arabicFF = ARABIC_FONTS.find(f => f.id === arabicFont)?.fontFamily ?? undefined;
+  const englishFF = ENGLISH_FONTS.find(f => f.id === englishFont)?.fontFamily ?? undefined;
 
   return (
     <View style={styles.wrap}>
@@ -24,7 +30,7 @@ export function DhikrPager({ dhikr }: { dhikr: Dhikr }) {
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled
           >
-            <Text style={[styles.arabic, { color: palette.textDark }]}>
+            <Text style={[styles.arabic, { color: palette.textDark, fontSize: ARABIC_SIZE[textSize], lineHeight: ARABIC_SIZE[textSize] * 1.6, fontFamily: arabicFF }]}>
               {dhikr.arabic}
             </Text>
           </ScrollView>
@@ -36,7 +42,7 @@ export function DhikrPager({ dhikr }: { dhikr: Dhikr }) {
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled
           >
-            <Text style={[styles.translit, { color: palette.textMid }]}>
+            <Text style={[styles.translit, { color: palette.textDark, fontSize: TRANSLIT_SIZE[textSize], fontFamily: englishFF }]}>
               {dhikr.transliteration}
             </Text>
           </ScrollView>
@@ -48,7 +54,7 @@ export function DhikrPager({ dhikr }: { dhikr: Dhikr }) {
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled
           >
-            <Text style={[styles.translation, { color: palette.textMid }]}>
+            <Text style={[styles.translation, { color: palette.textDark, fontSize: TRANSLATION_SIZE[textSize], lineHeight: TRANSLATION_SIZE[textSize] * 1.5, fontFamily: englishFF }]}>
               {dhikr.translation}
             </Text>
           </ScrollView>
@@ -75,7 +81,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
-  arabic: { fontSize: 30, textAlign: 'center', lineHeight: 48 },
-  translit: { fontSize: 18, fontStyle: 'italic', textAlign: 'center' },
-  translation: { fontSize: 16, textAlign: 'center', lineHeight: 24 },
+  arabic: { textAlign: 'center' },
+  translit: { fontStyle: 'italic', fontWeight: '700', textAlign: 'center' },
+  translation: { fontWeight: '700', textAlign: 'center' },
 });
