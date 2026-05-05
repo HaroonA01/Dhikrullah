@@ -149,6 +149,13 @@ export default function SettingsScreen() {
   const currentMethod = METHODS.find((m) => m.id === prayerMethodId) ?? METHODS[0];
   const currentTheme = themes.find((t) => t.id === themeId) ?? themes[0];
 
+  const applyLocation = (loc: LocationData) => {
+    setLocation(loc);
+    if (loc.label.includes('London') && loc.label.includes('United Kingdom')) {
+      setPrayerMethodId('ELM');
+    }
+  };
+
   const useDeviceLocation = async () => {
     const result = await requestDeviceLocation();
     if (!result) {
@@ -158,12 +165,12 @@ export default function SettingsScreen() {
       );
       return;
     }
-    setLocation(result);
+    applyLocation(result);
     setLocationPickerOpen(false);
   };
 
   const handleCitySelect = (loc: LocationData) => {
-    setLocation(loc);
+    applyLocation(loc);
     setCitySearchOpen(false);
   };
 
@@ -609,9 +616,17 @@ function TimePickerModal({ visible, title, currentMinutes, onSelect, onClose, pa
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={pickerStyles.backdrop} onPress={onClose}>
         <Pressable
-          style={[pickerStyles.card, { backgroundColor: cardBg, borderColor: palette.glassBorder }]}
+          style={[pickerStyles.card, { backgroundColor: cardBg }]}
           onPress={() => {}}
         >
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              pickerStyles.cardBorderOverlay,
+              { borderColor: palette.glassBorder },
+            ]}
+          />
           <Text style={[pickerStyles.title, { color: palette.textDark }]}>{title}</Text>
 
           <View style={timeStyles.row}>
@@ -920,10 +935,18 @@ function FontPickerModal<T extends string>({
         <Pressable
           style={[
             pickerStyles.card,
-            { backgroundColor: '#FFFFFF', borderColor: palette.glassBorder, borderWidth: 1, borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20, elevation: 10 },
+            { backgroundColor: '#FFFFFF', borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20, elevation: 10 },
           ]}
           onPress={() => {}}
         >
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              pickerStyles.cardBorderOverlay,
+              { borderColor: palette.glassBorder },
+            ]}
+          />
           <View style={{ height: 3, width: 40, backgroundColor: palette.accent, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
           <Text style={[pickerStyles.title, { color: palette.textDark }]}>
             {title}
@@ -1017,10 +1040,18 @@ function SoundPickerModal({ visible, currentId, onSelect, onClose, palette }: So
         <Pressable
           style={[
             pickerStyles.card,
-            { backgroundColor: '#FFFFFF', borderColor: palette.glassBorder, borderWidth: 1, borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20, elevation: 10 },
+            { backgroundColor: '#FFFFFF', borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20, elevation: 10 },
           ]}
           onPress={() => {}}
         >
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              pickerStyles.cardBorderOverlay,
+              { borderColor: palette.glassBorder },
+            ]}
+          />
           <View style={{ height: 3, width: 40, backgroundColor: palette.accent, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
           <Text style={[pickerStyles.title, { color: palette.textDark }]}>
             Notification Sound
@@ -1079,10 +1110,18 @@ function MethodPicker({ visible, currentId, onSelect, onClose, palette }: Method
         <Pressable
           style={[
             pickerStyles.card,
-            { backgroundColor: '#FFFFFF', borderColor: palette.glassBorder, borderWidth: 1, borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20, elevation: 10 },
+            { backgroundColor: '#FFFFFF', borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20, elevation: 10 },
           ]}
           onPress={() => {}}
         >
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              pickerStyles.cardBorderOverlay,
+              { borderColor: palette.glassBorder },
+            ]}
+          />
           <View style={{ height: 3, width: 40, backgroundColor: palette.accent, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
           <Text style={[pickerStyles.title, { color: palette.textDark }]}>
             Calculation method
@@ -1102,19 +1141,25 @@ function MethodPicker({ visible, currentId, onSelect, onClose, palette }: Method
                       borderBottomWidth: StyleSheet.hairlineWidth,
                     },
                     pressed && { opacity: 0.6 },
+                    { alignItems: 'flex-start', flexDirection: 'column', gap: 2 },
                   ]}
                 >
-                  <Text
-                    style={[
-                      pickerStyles.rowLabel,
-                      { color: palette.textDark, fontWeight: active ? '700' : '500' },
-                    ]}
-                  >
-                    {m.label}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <Text
+                      style={[
+                        pickerStyles.rowLabel,
+                        { color: palette.textDark, fontWeight: active ? '700' : '500' },
+                      ]}
+                    >
+                      {m.label}
+                    </Text>
+                    {active ? (
+                      <Check size={18} color={palette.accent} strokeWidth={2.5} />
+                    ) : null}
+                  </View>
+                  <Text style={{ fontSize: 12, color: palette.textMid, lineHeight: 17 }}>
+                    {m.description}
                   </Text>
-                  {active ? (
-                    <Check size={18} color={palette.accent} strokeWidth={2.5} />
-                  ) : null}
                 </Pressable>
               );
             })}
@@ -1137,10 +1182,13 @@ const pickerStyles = StyleSheet.create({
     width: '100%',
     maxWidth: 380,
     borderRadius: 18,
-    borderWidth: 1,
     paddingHorizontal: 18,
     paddingTop: 20,
     paddingBottom: 12,
+  },
+  cardBorderOverlay: {
+    borderWidth: 1,
+    borderRadius: 18,
   },
   title: {
     fontSize: 16,
@@ -1182,10 +1230,18 @@ function LocationPickerModal({
         <Pressable
           style={[
             pickerStyles.card,
-            { backgroundColor: cardBg, borderColor: palette.glassBorder },
+            { backgroundColor: cardBg },
           ]}
           onPress={() => {}}
         >
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              pickerStyles.cardBorderOverlay,
+              { borderColor: palette.glassBorder },
+            ]}
+          />
           <Text style={[pickerStyles.title, { color: palette.textDark }]}>
             Set location
           </Text>

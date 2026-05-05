@@ -6,6 +6,7 @@ import {
   type CalculationParameters,
 } from 'adhan';
 import type { CategoryId } from '@/types';
+import elmData from '@/data/elm-prayer-times.json';
 
 export type Madhab = 'shafi' | 'hanafi';
 
@@ -19,31 +20,122 @@ export type MethodId =
   | 'Qatar'
   | 'Kuwait'
   | 'Singapore'
-  | 'Tehran';
+  | 'Tehran'
+  | 'ELM';
 
 export const DEFAULT_METHOD: MethodId = 'MWL';
 
 export interface PrayerMethodEntry {
   id: MethodId;
   label: string;
-  build: () => CalculationParameters;
+  description: string;
+  build?: () => CalculationParameters;
 }
 
 export const METHODS: PrayerMethodEntry[] = [
-  { id: 'MWL', label: 'Muslim World League', build: () => CalculationMethod.MuslimWorldLeague() },
-  { id: 'ISNA', label: 'Islamic Society of N. America', build: () => CalculationMethod.NorthAmerica() },
-  { id: 'Egyptian', label: 'Egyptian General Authority', build: () => CalculationMethod.Egyptian() },
-  { id: 'Karachi', label: 'University of Islamic Sciences, Karachi', build: () => CalculationMethod.Karachi() },
-  { id: 'UmmAlQura', label: 'Umm al-Qura, Makkah', build: () => CalculationMethod.UmmAlQura() },
-  { id: 'Dubai', label: 'Dubai', build: () => CalculationMethod.Dubai() },
-  { id: 'Qatar', label: 'Qatar', build: () => CalculationMethod.Qatar() },
-  { id: 'Kuwait', label: 'Kuwait', build: () => CalculationMethod.Kuwait() },
-  { id: 'Singapore', label: 'Singapore', build: () => CalculationMethod.Singapore() },
-  { id: 'Tehran', label: 'Tehran', build: () => CalculationMethod.Tehran() },
+  {
+    id: 'ELM',
+    label: 'East London Mosque',
+    description: 'Fixed timetable from the East London Mosque, London E1. Based on the London Unified Prayer Timetable.',
+  },
+  {
+    id: 'MWL',
+    label: 'Muslim World League',
+    description: 'Fajr 18°, Isha 17°. Recommended for Europe, Far East, and parts of the Americas.',
+    build: () => CalculationMethod.MuslimWorldLeague(),
+  },
+  {
+    id: 'ISNA',
+    label: 'Islamic Society of N. America',
+    description: 'Fajr 15°, Isha 15°. Standard method for the United States and Canada.',
+    build: () => CalculationMethod.NorthAmerica(),
+  },
+  {
+    id: 'Egyptian',
+    label: 'Egyptian General Authority',
+    description: 'Fajr 19.5°, Isha 17.5°. Used across Egypt, Africa, and parts of the Middle East.',
+    build: () => CalculationMethod.Egyptian(),
+  },
+  {
+    id: 'Karachi',
+    label: 'University of Islamic Sciences, Karachi',
+    description: 'Fajr 18°, Isha 18°. Widely followed in Pakistan, India, Bangladesh, and Afghanistan.',
+    build: () => CalculationMethod.Karachi(),
+  },
+  {
+    id: 'UmmAlQura',
+    label: 'Umm al-Qura, Makkah',
+    description: 'Fajr 18.5°, Isha fixed 90 min after Maghrib. Official method of Saudi Arabia.',
+    build: () => CalculationMethod.UmmAlQura(),
+  },
+  {
+    id: 'Dubai',
+    label: 'Dubai',
+    description: 'Fajr 18.2°, Isha 18.2°. Official method used across the United Arab Emirates.',
+    build: () => CalculationMethod.Dubai(),
+  },
+  {
+    id: 'Qatar',
+    label: 'Qatar',
+    description: 'Fajr 18°, Isha fixed 90 min after Maghrib. Official method of the State of Qatar.',
+    build: () => CalculationMethod.Qatar(),
+  },
+  {
+    id: 'Kuwait',
+    label: 'Kuwait',
+    description: 'Fajr 18°, Isha 17.5°. Official method used in the State of Kuwait.',
+    build: () => CalculationMethod.Kuwait(),
+  },
+  {
+    id: 'Singapore',
+    label: 'Singapore',
+    description: 'Fajr 20°, Isha 18°. Method established by MUIS for Singapore and surrounding region.',
+    build: () => CalculationMethod.Singapore(),
+  },
+  {
+    id: 'Tehran',
+    label: 'Tehran',
+    description: 'Fajr 17.7°, Isha 14°. Institute of Geophysics, Tehran. Used in Iran and some Shia communities.',
+    build: () => CalculationMethod.Tehran(),
+  },
 ];
 
 export const getMethod = (id: MethodId): PrayerMethodEntry =>
   METHODS.find((m) => m.id === id) ?? METHODS[0];
+
+const elmTimeData = elmData as Record<string, {
+  fajr: string; sunrise: string; dhuhr: string;
+  asrShafi: string; asrHanafi: string; maghrib: string; isha: string;
+}>;
+
+const lookupELMTimes = (date: Date, madhab: Madhab): ExtendedPrayerTimes => {
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  let key = `${mm}-${dd}`;
+  // Fallback for Feb 29 in leap years (timetable only covers 2026)
+  if (!elmTimeData[key]) {
+    const prev = new Date(date);
+    prev.setDate(prev.getDate() - 1);
+    const pm = String(prev.getMonth() + 1).padStart(2, '0');
+    const pd = String(prev.getDate()).padStart(2, '0');
+    key = `${pm}-${pd}`;
+  }
+  const e = elmTimeData[key];
+  const at = (t: string): Date => {
+    const [h, m] = t.split(':').map(Number);
+    const d = new Date(date);
+    d.setHours(h, m, 0, 0);
+    return d;
+  };
+  return {
+    fajr: at(e.fajr),
+    sunrise: at(e.sunrise),
+    dhuhr: at(e.dhuhr),
+    asr: madhab === 'hanafi' ? at(e.asrHanafi) : at(e.asrShafi),
+    maghrib: at(e.maghrib),
+    isha: at(e.isha),
+  };
+};
 
 export interface Coords {
   lat: number;
@@ -56,7 +148,17 @@ export const computePrayerTimes = (
   methodId: MethodId,
   madhab: Madhab,
 ): Map<CategoryId, Date> => {
-  const params = getMethod(methodId).build();
+  if (methodId === 'ELM') {
+    const ext = lookupELMTimes(date, madhab);
+    return new Map<CategoryId, Date>([
+      ['fajr', ext.fajr],
+      ['dhuhr', ext.dhuhr],
+      ['asr', ext.asr],
+      ['maghrib', ext.maghrib],
+      ['isha', ext.isha],
+    ]);
+  }
+  const params = getMethod(methodId).build!();
   params.madhab = madhab === 'hanafi' ? AdhanMadhab.Hanafi : AdhanMadhab.Shafi;
   const c = new Coordinates(coords.lat, coords.lon);
   const t = new PrayerTimes(c, date, params);
@@ -84,7 +186,8 @@ export const computeExtendedTimes = (
   methodId: MethodId,
   madhab: Madhab,
 ): ExtendedPrayerTimes => {
-  const params = getMethod(methodId).build();
+  if (methodId === 'ELM') return lookupELMTimes(date, madhab);
+  const params = getMethod(methodId).build!();
   params.madhab = madhab === 'hanafi' ? AdhanMadhab.Hanafi : AdhanMadhab.Shafi;
   const c = new Coordinates(coords.lat, coords.lon);
   const t = new PrayerTimes(c, date, params);

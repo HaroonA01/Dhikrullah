@@ -1,5 +1,5 @@
 import { ComponentType } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -37,13 +37,18 @@ export function GhostArrow({ Icon, onPress }: Props) {
       hitSlop={10}
       style={[
         styles.btn,
-        {
-          backgroundColor: palette.glassBg,
-          borderColor: palette.glassBorder,
-        },
+        { backgroundColor: palette.glassBg },
         style,
       ]}
     >
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          styles.borderOverlay,
+          { borderColor: palette.glassBorder },
+        ]}
+      />
       <Icon size={22} color={palette.accent} strokeWidth={2.2} />
     </AnimatedPressable>
   );
@@ -56,6 +61,9 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  borderOverlay: {
     borderWidth: 1,
+    borderRadius: 22,
   },
 });

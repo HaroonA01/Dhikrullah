@@ -12,13 +12,18 @@ export function GlassCard({ children, style }: Props) {
     <View
       style={[
         styles.card,
-        {
-          backgroundColor: palette.glassBg,
-          borderColor: palette.glassBorder,
-        },
+        { backgroundColor: palette.glassBg },
         style,
       ]}
     >
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          styles.borderOverlay,
+          { borderColor: palette.glassBorder },
+        ]}
+      />
       {children}
     </View>
   );
@@ -26,12 +31,14 @@ export function GlassCard({ children, style }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 2,
+  },
+  borderOverlay: {
+    borderWidth: 1,
+    borderRadius: 16,
   },
 });

@@ -68,14 +68,19 @@ export function CategoryCard({ category, trailing, timeRange, progress }: Props)
     <Pressable
       style={({ pressed }) => [
         styles.card,
-        {
-          backgroundColor: palette.glassBg,
-          borderColor: palette.glassBorder,
-        },
+        { backgroundColor: palette.glassBg },
         pressed && styles.pressed,
       ]}
       onPress={() => router.push(`/counter/${category.id}`)}
     >
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          styles.borderOverlay,
+          { borderColor: palette.glassBorder },
+        ]}
+      />
       {/* left accent bar */}
       <View style={[styles.accentBar, { backgroundColor: palette.accent }]} />
 
@@ -113,7 +118,6 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     height: 84,
-    borderWidth: 1,
     borderRadius: 16,
     marginBottom: 10,
     overflow: 'hidden',
@@ -123,7 +127,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 2,
+  },
+  borderOverlay: {
+    borderWidth: 1,
+    borderRadius: 16,
+    zIndex: 1,
   },
   pressed: {
     opacity: 0.75,

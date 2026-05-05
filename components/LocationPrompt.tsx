@@ -18,9 +18,17 @@ export function LocationPrompt({ visible, onAllow, onSkip }: Props) {
         <View
           style={[
             styles.card,
-            { backgroundColor: cardBg, borderColor: palette.glassBorder },
+            { backgroundColor: cardBg },
           ]}
         >
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              styles.borderOverlay,
+              { borderColor: palette.glassBorder },
+            ]}
+          />
           <View style={[styles.iconWrap, { backgroundColor: palette.accentLight }]}>
             <MapPin size={28} color={palette.accent} strokeWidth={2} />
           </View>
@@ -70,7 +78,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 360,
     borderRadius: 20,
-    borderWidth: 1,
     paddingHorizontal: 24,
     paddingVertical: 28,
     alignItems: 'center',
@@ -79,6 +86,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 20,
     elevation: 10,
+  },
+  borderOverlay: {
+    borderWidth: 1,
+    borderRadius: 20,
   },
   iconWrap: {
     width: 64,

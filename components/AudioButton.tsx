@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Audio, AVPlaybackSource } from 'expo-av';
 import { Pause, Volume2, VolumeX } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
@@ -75,10 +75,18 @@ export function AudioButton({ source, dhikrId }: Props) {
       hitSlop={10}
       style={[
         styles.btn,
-        { backgroundColor: palette.glassBg, borderColor: palette.glassBorder },
+        { backgroundColor: palette.glassBg },
         disabled && styles.disabled,
       ]}
     >
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          styles.borderOverlay,
+          { borderColor: palette.glassBorder },
+        ]}
+      />
       <Icon size={18} color={color} strokeWidth={2} />
     </Pressable>
   );
@@ -91,7 +99,10 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  borderOverlay: {
     borderWidth: 1,
+    borderRadius: 17,
   },
   disabled: {
     opacity: 0.5,

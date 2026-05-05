@@ -1,4 +1,4 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -25,10 +25,18 @@ export function InfoModal({ visible, description, reference, grade, onClose }: P
         <Pressable
           style={[
             styles.card,
-            { backgroundColor: cardBg, borderColor: palette.glassBorder },
+            { backgroundColor: cardBg },
           ]}
           onPress={() => {}}
         >
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              styles.borderOverlay,
+              { borderColor: palette.glassBorder },
+            ]}
+          />
           <Pressable style={styles.close} onPress={onClose} hitSlop={12}>
             <X size={18} color={palette.textMid} strokeWidth={2} />
           </Pressable>
@@ -82,7 +90,6 @@ const styles = StyleSheet.create({
     maxWidth: 360,
     maxHeight: '70%',
     borderRadius: 18,
-    borderWidth: 1,
     paddingHorizontal: 22,
     paddingVertical: 24,
     shadowColor: '#000',
@@ -90,6 +97,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 20,
     elevation: 10,
+  },
+  borderOverlay: {
+    borderWidth: 1,
+    borderRadius: 18,
   },
   close: {
     position: 'absolute',

@@ -201,13 +201,18 @@ export default function CounterScreen() {
                       onPress={() => setInfoOpen(true)}
                       style={[
                         styles.cornerLeft,
-                        {
-                          backgroundColor: palette.glassBg,
-                          borderColor: palette.glassBorder,
-                        },
+                        { backgroundColor: palette.glassBg },
                       ]}
                       hitSlop={10}
                     >
+                      <View
+                        pointerEvents="none"
+                        style={[
+                          StyleSheet.absoluteFill,
+                          styles.cornerLeftBorder,
+                          { borderColor: palette.glassBorder },
+                        ]}
+                      />
                       <Info size={18} color={palette.accent} strokeWidth={2} />
                     </Pressable>
                     <View style={styles.cornerRight}>
@@ -370,8 +375,11 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
     zIndex: 2,
+  },
+  cornerLeftBorder: {
+    borderWidth: 1,
+    borderRadius: 17,
   },
   cornerRight: {
     position: 'absolute',

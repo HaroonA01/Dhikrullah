@@ -101,10 +101,18 @@ export function CitySearchModal({ visible, onSelect, onClose }: Props) {
         <Pressable
           style={[
             styles.card,
-            { backgroundColor: cardBg, borderColor: palette.glassBorder },
+            { backgroundColor: cardBg },
           ]}
           onPress={() => {}}
         >
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              styles.cardBorderOverlay,
+              { borderColor: palette.glassBorder },
+            ]}
+          />
           <View style={styles.headerRow}>
             <Text style={[styles.title, { color: palette.textDark }]}>
               Search city
@@ -117,12 +125,17 @@ export function CitySearchModal({ visible, onSelect, onClose }: Props) {
           <View
             style={[
               styles.inputWrap,
-              {
-                backgroundColor: palette.glassBg,
-                borderColor: palette.glassBorder,
-              },
+              { backgroundColor: palette.glassBg },
             ]}
           >
+            <View
+              pointerEvents="none"
+              style={[
+                StyleSheet.absoluteFill,
+                styles.inputBorderOverlay,
+                { borderColor: palette.glassBorder },
+              ]}
+            />
             <Search size={16} color={palette.textDim} strokeWidth={2} />
             <TextInput
               ref={inputRef}
@@ -212,10 +225,13 @@ const styles = StyleSheet.create({
     maxWidth: 380,
     maxHeight: '70%',
     borderRadius: 18,
-    borderWidth: 1,
     paddingHorizontal: 18,
     paddingTop: 18,
     paddingBottom: 14,
+  },
+  cardBorderOverlay: {
+    borderWidth: 1,
+    borderRadius: 18,
   },
   headerRow: {
     flexDirection: 'row',
@@ -231,11 +247,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 10,
+  },
+  inputBorderOverlay: {
+    borderWidth: 1,
+    borderRadius: 12,
   },
   input: {
     flex: 1,

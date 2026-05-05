@@ -82,6 +82,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   arabic: { textAlign: 'center' },
-  translit: { fontStyle: 'italic', fontWeight: '700', textAlign: 'center' },
-  translation: { fontWeight: '700', textAlign: 'center' },
+  translit: { fontStyle: 'italic', fontWeight: '400', textAlign: 'center' },
+  translation: { fontWeight: '400', textAlign: 'center' },
 });

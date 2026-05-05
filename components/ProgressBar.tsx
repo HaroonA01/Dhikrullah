@@ -32,11 +32,19 @@ export function ProgressBar({ percent, completed, total }: Props) {
       <View
         style={[
           styles.track,
-          { backgroundColor: palette.glassBg, borderColor: palette.glassBorder },
+          { backgroundColor: palette.glassBg },
         ]}
       >
         <Animated.View
           style={[styles.fill, { backgroundColor: palette.accent }, fillStyle]}
+        />
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            styles.borderOverlay,
+            { borderColor: palette.glassBorder },
+          ]}
         />
       </View>
       <View style={styles.labelRow}>
@@ -60,8 +68,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 10,
     borderRadius: 5,
-    borderWidth: 1,
     overflow: 'hidden',
+  },
+  borderOverlay: {
+    borderWidth: 1,
+    borderRadius: 5,
   },
   fill: {
     height: '100%',

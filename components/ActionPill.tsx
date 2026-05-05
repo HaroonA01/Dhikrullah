@@ -1,5 +1,5 @@
 import { ComponentType } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -50,11 +50,19 @@ export function ActionPill({
       disabled={disabled}
       style={[
         styles.btn,
-        { backgroundColor: palette.glassBg, borderColor: palette.glassBorder },
+        { backgroundColor: palette.glassBg },
         disabled && styles.disabled,
         style,
       ]}
     >
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          styles.borderOverlay,
+          { borderColor: palette.glassBorder },
+        ]}
+      />
       <Icon
         size={22}
         color={palette.accent}
@@ -72,12 +80,14 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
-    elevation: 2,
+  },
+  borderOverlay: {
+    borderWidth: 1,
+    borderRadius: 27,
   },
   disabled: {
     opacity: 0.3,
