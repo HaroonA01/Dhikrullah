@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Dimensions, Keyboard, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useDhikrContent, useCounterContext } from '@/context/CounterContext';
 import { usePrefs } from '@/context/PrefsContext';
 import { useTheme } from '@/context/ThemeContext';
+import { getSpecialTheme, resolveSpecialPalette } from '@/constants/themes';
 import { CategoryCard } from '@/components/CategoryCard';
 import { GradientBackground } from '@/components/GradientBackground';
 import { SwipeChevron } from '@/components/SwipeChevron';
@@ -24,6 +25,7 @@ import {
   computeCategoryWindows,
 } from '@/lib/prayer';
 import { requestDeviceLocation } from '@/lib/location';
+import { homeEvents } from '@/lib/homeEvents';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 const SPRING_EXPAND = { damping: 12, stiffness: 78, mass: 1.15 };
@@ -35,7 +37,7 @@ const FLING_VELOCITY = 1400;
 export default function Home() {
   const insets = useSafeAreaInsets();
   const quote = useRandomQuote();
-  const { palette } = useTheme();
+  const { palette, unlockSpecialTheme, setActiveSpecialTheme } = useTheme();
   const { categories } = useDhikrContent();
   const { states, dhikrsByCategory } = useCounterContext();
   const {
@@ -78,6 +80,31 @@ export default function Home() {
   const [promptVisible, setPromptVisible] = useState(false);
   const promptTriggered = useRef(false);
 
+  const [codeModalVisible, setCodeModalVisible] = useState(false);
+  const eggTapCount = useRef(0);
+  const eggTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleEasterEggTap = useCallback(() => {
+    eggTapCount.current += 1;
+    if (eggTimer.current) clearTimeout(eggTimer.current);
+    if (eggTapCount.current >= 10) {
+      eggTapCount.current = 0;
+      eggTimer.current = null;
+      setCodeModalVisible(true);
+      return;
+    }
+    eggTimer.current = setTimeout(() => {
+      eggTapCount.current = 0;
+      eggTimer.current = null;
+    }, 3000);
+  }, []);
+
+  const handleEasterEggSuccess = useCallback((themeId: string) => {
+    unlockSpecialTheme(themeId);
+    setActiveSpecialTheme(themeId);
+    setCodeModalVisible(false);
+  }, [unlockSpecialTheme, setActiveSpecialTheme]);
+
   useEffect(() => {
     if (!prefsHydrated) return;
     if (promptTriggered.current) return;
@@ -109,6 +136,15 @@ export default function Home() {
   const expandTarget = useSharedValue(0);
   const scrollY = useSharedValue(0);
   const listHeight = useSharedValue(SCREEN_H);
+
+  useEffect(() => {
+    homeEvents.register(() => {
+      expandTarget.value = 0;
+      progress.value = withSpring(0, SPRING_COLLAPSE);
+    });
+    return () => homeEvents.unregister();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const nativeRef = useRef<any>(null);
@@ -242,7 +278,7 @@ export default function Home() {
 
         <Animated.View
           style={[styles.headerWrap, { height: insets.top + 74 }, headerStyle]}
-          pointerEvents="none"
+          pointerEvents="box-none"
         >
           <LinearGradient
             colors={[palette.bgTop, palette.bgTop, `${palette.bgTop}00`]}
@@ -250,9 +286,11 @@ export default function Home() {
             style={StyleSheet.absoluteFill}
           />
           <View style={[styles.headerInner, { paddingTop: insets.top + 28 }]}>
-            <Text style={[styles.headerGreeting, { color: palette.textDark }]}>
-              As-Salamu Alaykum
-            </Text>
+            <Pressable onPress={handleEasterEggTap} hitSlop={12}>
+              <Text style={[styles.headerGreeting, { color: palette.textDark }]}>
+                As-Salamu Alaykum
+              </Text>
+            </Pressable>
             <Text style={[styles.headerSub, { color: palette.accent }]}>
               Dhikrullah
             </Text>
@@ -266,10 +304,210 @@ export default function Home() {
           onAllow={handleAllow}
           onSkip={handleSkip}
         />
+
+        <EasterEggModal
+          visible={codeModalVisible}
+          onClose={() => setCodeModalVisible(false)}
+          onSuccess={handleEasterEggSuccess}
+        />
       </View>
     </GestureDetector>
   );
 }
+
+// ─── Easter Egg Modal ──────────────────────────────────────────────────────
+
+interface EggModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSuccess: (themeId: string) => void;
+}
+
+function EasterEggModal({ visible, onClose, onSuccess }: EggModalProps) {
+  const { palette, isDark } = useTheme();
+  const [code, setCode] = useState('');
+  const [error, setError] = useState(false);
+  const [kbOffset, setKbOffset] = useState(0);
+  const [successId, setSuccessId] = useState<string | null>(null);
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!visible) {
+      setCode('');
+      setError(false);
+      setSuccessId(null);
+      if (successTimer.current) clearTimeout(successTimer.current);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, (e) => {
+      setKbOffset(Math.min(e.endCoordinates.height * 0.5, 140));
+    });
+    const hide = Keyboard.addListener(hideEvent, () => setKbOffset(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  const handleSubmit = () => {
+    const trimmed = code.trim();
+    let matched: string | null = null;
+    if (trimmed.toLowerCase() === 'arabian night') matched = 'arabian-night';
+    else if (trimmed === 'ليلة العربيا') matched = 'laylat-arabia';
+    else if (trimmed.toLowerCase() === 'fifty six') matched = 'fifty-six';
+    else if (trimmed.toLowerCase() === 'i love you always and forever') matched = 'always-forever-t1';
+
+    if (matched) {
+      setSuccessId(matched);
+      successTimer.current = setTimeout(() => onSuccess(matched!), 1600);
+    } else {
+      setError(true);
+    }
+  };
+
+  const successTheme = successId ? getSpecialTheme(successId) : null;
+  const sp = successTheme ? resolveSpecialPalette(successTheme, isDark) : null;
+  const cardBg    = sp?.gradientColors[0]  ?? palette.bgTop;
+  const cardBorder = sp?.glassBorder       ?? palette.glassBorder;
+  const accent    = sp?.accent             ?? palette.accent;
+  const textMid   = sp?.textMid            ?? palette.textMid;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={successId ? undefined : onClose}>
+      <Pressable style={eggStyles.backdrop} onPress={successId ? undefined : onClose}>
+        <Pressable
+          style={[
+            eggStyles.card,
+            { backgroundColor: cardBg, borderColor: cardBorder, transform: [{ translateY: successId ? 0 : -kbOffset }] },
+          ]}
+          onPress={() => {}}
+        >
+          <Text style={[eggStyles.decorTL, { color: accent }]}>✦</Text>
+          <Text style={[eggStyles.decorBR, { color: accent }]}>☽</Text>
+
+          {successId ? (
+            <>
+              <Text style={[eggStyles.title, { color: accent }]}>
+                ✦ {successTheme?.name} Unlocked
+              </Text>
+              <Text style={[eggStyles.subtitle, { color: textMid }]}>
+                A hidden theme has been revealed. Find it in Settings under Appearance.
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={[eggStyles.title, { color: palette.accent }]}>Enter the Secret</Text>
+              <Text style={[eggStyles.subtitle, { color: palette.textMid }]}>
+                A hidden theme awaits those who know its name…
+              </Text>
+              <TextInput
+                value={code}
+                onChangeText={(t) => { setCode(t); setError(false); }}
+                placeholder="Type the name…"
+                placeholderTextColor={palette.textDim}
+                style={[
+                  eggStyles.input,
+                  {
+                    borderColor: error ? '#FF6B6B' : palette.glassBorder,
+                    color: palette.textDark,
+                    backgroundColor: palette.glassBg,
+                  },
+                ]}
+                autoCapitalize="none"
+                autoCorrect={false}
+                onSubmitEditing={handleSubmit}
+                returnKeyType="done"
+              />
+              {error && (
+                <Text style={eggStyles.errorText}>That's not quite right…</Text>
+              )}
+              <Pressable
+                onPress={handleSubmit}
+                style={({ pressed }) => [
+                  eggStyles.btn,
+                  { backgroundColor: palette.accent },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[eggStyles.btnText, { color: palette.bgTop }]}>Reveal</Text>
+              </Pressable>
+            </>
+          )}
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+const eggStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  card: {
+    borderRadius: 20,
+    paddingHorizontal: 28,
+    paddingVertical: 32,
+    width: '82%',
+    borderWidth: 1,
+  },
+  decorTL: {
+    position: 'absolute',
+    top: 14,
+    left: 16,
+    fontSize: 18,
+    opacity: 0.5,
+  },
+  decorBR: {
+    position: 'absolute',
+    bottom: 14,
+    right: 16,
+    fontSize: 20,
+    opacity: 0.4,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 19,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: '#FF8080',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  btn: {
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  btnText: {
+    fontWeight: '700',
+    fontSize: 15,
+    letterSpacing: 0.5,
+  },
+});
 
 const styles = StyleSheet.create({
   wrap: {

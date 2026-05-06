@@ -217,7 +217,6 @@ export default function StatsScreen() {
             Icon={Flame}
             label="Longest Streak"
             value={longestStreak === 1 ? '1 day' : `${longestStreak} days`}
-            valueColor={palette.accent}
             caption={longestStreakCaption}
           />
         </View>

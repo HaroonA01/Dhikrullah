@@ -3,7 +3,6 @@ export type CategoryId =
   | 'waking_up'
   | 'morning'
   | 'evening'
-  | 'night'
   | 'fajr'
   | 'dhuhr'
   | 'asr'
@@ -13,7 +12,7 @@ export type CategoryId =
   | 'before_bed';
 
 const KNOWN_CATEGORY_IDS: readonly CategoryId[] = [
-  'all_day', 'waking_up', 'morning', 'evening', 'night',
+  'all_day', 'waking_up', 'morning', 'evening',
   'fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'witr', 'before_bed',
 ];
 

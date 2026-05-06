@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Home, BarChart2, Share2, Settings, Heart } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
+import { homeEvents } from '@/lib/homeEvents';
 
 export default function TabsLayout() {
   const { palette } = useTheme();
@@ -26,6 +27,11 @@ export default function TabsLayout() {
           title: 'Home',
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} strokeWidth={1.5} />,
         }}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            if (navigation.isFocused()) homeEvents.collapse();
+          },
+        })}
       />
       <Tabs.Screen
         name="favourites"

@@ -62,7 +62,7 @@ export function TimeSpentTile({
         </View>
       </View>
 
-      <Text style={[styles.label, { color: palette.textMid }]}>Time Spent</Text>
+      <Text style={[styles.label, { color: palette.textDark }]}>Time Spent</Text>
       <Text
         style={[styles.value, { color: palette.textDark }]}
         numberOfLines={1}
@@ -72,11 +72,11 @@ export function TimeSpentTile({
       </Text>
 
       {pct !== null ? (
-        <Text style={[styles.comparison, { color: palette.accent }]}>
+        <Text style={[styles.comparison, { color: palette.textDark }]}>
           {isUp ? '↑' : '↓'} {pct}% vs {mode === 'day' ? 'yesterday' : 'last week'}
         </Text>
       ) : (
-        <Text style={[styles.comparison, { color: palette.textDim }]}>
+        <Text style={[styles.comparison, { color: palette.textDark }]}>
           ✦ First entry
         </Text>
       )}

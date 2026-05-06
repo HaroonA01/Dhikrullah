@@ -9,29 +9,28 @@ interface Props {
   value: string;
   valueSuffix?: string;
   caption?: string;
-  valueColor?: string;
 }
 
-export function StatTile({ Icon, label, value, valueSuffix, caption, valueColor }: Props) {
+export function StatTile({ Icon, label, value, valueSuffix, caption }: Props) {
   const { palette } = useTheme();
   return (
     <GlassCard style={styles.card}>
       <View style={styles.iconRow}>
         <Icon size={20} color={palette.accent} strokeWidth={1.5} />
       </View>
-      <Text style={[styles.label, { color: palette.textMid }]}>{label}</Text>
+      <Text style={[styles.label, { color: palette.textDark }]}>{label}</Text>
       <Text
-        style={[styles.value, { color: valueColor ?? palette.textDark }]}
+        style={[styles.value, { color: palette.textDark }]}
         numberOfLines={1}
         adjustsFontSizeToFit
       >
         {value}
         {valueSuffix ? (
-          <Text style={{ color: palette.accent }}>{valueSuffix}</Text>
+          <Text style={{ color: palette.textDark }}>{valueSuffix}</Text>
         ) : null}
       </Text>
       {caption ? (
-        <Text style={[styles.caption, { color: palette.textDim }]}>{caption}</Text>
+        <Text style={[styles.caption, { color: palette.textDark }]}>{caption}</Text>
       ) : null}
     </GlassCard>
   );

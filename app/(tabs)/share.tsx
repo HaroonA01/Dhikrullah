@@ -48,10 +48,7 @@ export default function ShareScreen() {
       <GeometricPattern />
 
       {/* Screen-level leaf accents */}
-      <LeafCorner position="topLeft" size={160} opacity={0.18} />
-      <LeafCorner position="topRight" size={140} opacity={0.15} />
       <LeafCorner position="bottomLeft" size={180} opacity={0.20} />
-      <LeafCorner position="bottomRight" size={140} opacity={0.13} />
 
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Text style={[styles.wordmark, { color: palette.accent }]}>DHIKRULLAH</Text>
@@ -61,7 +58,6 @@ export default function ShareScreen() {
       <View style={[styles.cardWrap, { paddingBottom: insets.bottom + 100 }]}>
         <GlassCard style={styles.card}>
           {/* Card-level leaf accents */}
-          <LeafCorner position="topLeft" size={108} opacity={0.28} />
           <LeafCorner position="topRight" size={108} opacity={0.28} />
 
           {/* Hero block */}

@@ -78,22 +78,21 @@ const NOTIF_OFFSET_OPTIONS: { value: NotifOffset; label: string }[] = [
 ];
 
 const ALL_CATEGORY_IDS: CategoryId[] = [
-  'all_day', 'fajr', 'waking_up', 'morning', 'dhuhr', 'asr',
-  'evening', 'maghrib', 'isha', 'witr', 'night', 'before_bed',
+  'all_day', 'fajr', 'morning', 'waking_up', 'dhuhr', 'asr',
+  'evening', 'maghrib', 'isha', 'witr', 'before_bed',
 ];
 
 const CATEGORY_DISPLAY: Record<CategoryId, string> = {
   all_day: 'All Day',
   fajr: 'Fajr',
-  waking_up: 'Waking Up',
   morning: 'Morning',
+  waking_up: 'Waking Up',
   dhuhr: 'Dhuhr',
   asr: 'Asr',
   evening: 'Evening',
   maghrib: 'Maghrib',
   isha: 'Isha',
   witr: 'Witr',
-  night: 'Night',
   before_bed: 'Before Bed',
 };
 
@@ -105,7 +104,10 @@ const minutesToTimeString = (minutes: number): string => {
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { palette, mode, setMode, themeId, setThemeId, themes } = useTheme();
+  const {
+    palette, mode, setMode, themeId, setThemeId, themes,
+    visibleSpecialThemes, activeSpecialTheme, setActiveSpecialTheme, hideSpecialTheme,
+  } = useTheme();
   const {
     hapticsIndividual,
     setHapticsIndividual,
@@ -148,6 +150,7 @@ export default function SettingsScreen() {
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const currentMethod = METHODS.find((m) => m.id === prayerMethodId) ?? METHODS[0];
   const currentTheme = themes.find((t) => t.id === themeId) ?? themes[0];
+  const displayThemeName = activeSpecialTheme?.name ?? currentTheme.name;
 
   const applyLocation = (loc: LocationData) => {
     setLocation(loc);
@@ -273,7 +276,7 @@ export default function SettingsScreen() {
             Icon={PaletteIcon}
             trailing={
               <Text style={[styles.trailingText, { color: palette.accent }]}>
-                {currentTheme.name}
+                {displayThemeName}
               </Text>
             }
             isLast
@@ -283,6 +286,10 @@ export default function SettingsScreen() {
             themeId={themeId}
             setThemeId={setThemeId}
             palette={palette}
+            visibleSpecialThemes={visibleSpecialThemes}
+            activeSpecialTheme={activeSpecialTheme}
+            setActiveSpecialTheme={setActiveSpecialTheme}
+            hideSpecialTheme={hideSpecialTheme}
           />
         </SettingsSection>
 
@@ -746,9 +753,16 @@ interface ThemeRowProps {
   themeId: string;
   setThemeId: (id: string) => void;
   palette: ReturnType<typeof useTheme>['palette'];
+  visibleSpecialThemes: ReturnType<typeof useTheme>['visibleSpecialThemes'];
+  activeSpecialTheme: ReturnType<typeof useTheme>['activeSpecialTheme'];
+  setActiveSpecialTheme: ReturnType<typeof useTheme>['setActiveSpecialTheme'];
+  hideSpecialTheme: ReturnType<typeof useTheme>['hideSpecialTheme'];
 }
 
-function ThemeRow({ themes, themeId, setThemeId, palette }: ThemeRowProps) {
+function ThemeRow({
+  themes, themeId, setThemeId, palette,
+  visibleSpecialThemes, activeSpecialTheme, setActiveSpecialTheme, hideSpecialTheme,
+}: ThemeRowProps) {
   const [scrollX, setScrollX] = useState(0);
   const [contentW, setContentW] = useState(0);
   const [layoutW, setLayoutW] = useState(0);
@@ -779,6 +793,17 @@ function ThemeRow({ themes, themeId, setThemeId, palette }: ThemeRowProps) {
     transform: [{ translateX: bounce.value }],
   }));
 
+  const handleHideSpecial = (id: string) => {
+    Alert.alert(
+      'Hide Theme',
+      'This will hide the theme from your settings. It will remain active if currently selected. Complete the secret again to make it reappear.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Hide', style: 'destructive', onPress: () => hideSpecialTheme(id) },
+      ],
+    );
+  };
+
   return (
     <View style={styles.themeBlock}>
       <View style={fadeStyles.outer}>
@@ -803,19 +828,42 @@ function ThemeRow({ themes, themeId, setThemeId, palette }: ThemeRowProps) {
               <View key={t.id} style={styles.swatchCol}>
                 <ThemeSwatch
                   theme={t}
-                  selected={t.id === themeId}
+                  selected={t.id === themeId && !activeSpecialTheme}
                   onPress={() => setThemeId(t.id)}
                 />
                 <Text
                   style={[
                     styles.swatchLabel,
                     {
-                      color: t.id === themeId ? palette.accent : palette.textMid,
-                      fontWeight: t.id === themeId ? '700' : '500',
+                      color: (t.id === themeId && !activeSpecialTheme) ? palette.accent : palette.textMid,
+                      fontWeight: (t.id === themeId && !activeSpecialTheme) ? '700' : '500',
                     },
                   ]}
                 >
                   {t.name.replace(' ', '\n')}
+                </Text>
+              </View>
+            ))}
+            {visibleSpecialThemes.map((st) => (
+              <View key={st.id} style={styles.swatchCol}>
+                <ThemeSwatch
+                  kind="special"
+                  theme={st}
+                  selected={activeSpecialTheme?.id === st.id}
+                  onPress={() => setActiveSpecialTheme(st.id)}
+                  onLongPress={() => handleHideSpecial(st.id)}
+                  delayLongPress={3000}
+                />
+                <Text
+                  style={[
+                    styles.swatchLabel,
+                    {
+                      color: '#D4AF37',
+                      fontWeight: activeSpecialTheme?.id === st.id ? '800' : '700',
+                    },
+                  ]}
+                >
+                  {st.name.replace(' ', '\n')}
                 </Text>
               </View>
             ))}
