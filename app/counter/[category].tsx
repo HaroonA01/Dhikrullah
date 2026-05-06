@@ -197,30 +197,6 @@ export default function CounterScreen() {
                         reachedTarget={reachedTarget}
                       />
                     </View>
-                    <Pressable
-                      onPress={() => setInfoOpen(true)}
-                      style={[
-                        styles.cornerLeft,
-                        { backgroundColor: palette.glassBg },
-                      ]}
-                      hitSlop={10}
-                    >
-                      <View
-                        pointerEvents="none"
-                        style={[
-                          StyleSheet.absoluteFill,
-                          styles.cornerLeftBorder,
-                          { borderColor: palette.glassBorder },
-                        ]}
-                      />
-                      <Info size={18} color={palette.accent} strokeWidth={2} />
-                    </Pressable>
-                    <View style={styles.cornerRight}>
-                      <AudioButton
-                        source={resolveAudio(currentDhikr.audioFilename)}
-                        dhikrId={currentDhikr.id}
-                      />
-                    </View>
                     <View style={styles.pagerSlot}>
                       <DhikrPager dhikr={currentDhikr} />
                     </View>
@@ -233,6 +209,31 @@ export default function CounterScreen() {
                 height={TILE_HEIGHT}
                 stroke={4}
               />
+              {/* Info + Audio outside GestureDetector so taps don't increment */}
+              <Pressable
+                onPress={() => setInfoOpen(true)}
+                style={[
+                  styles.cornerLeft,
+                  { backgroundColor: palette.glassBg },
+                ]}
+                hitSlop={10}
+              >
+                <View
+                  pointerEvents="none"
+                  style={[
+                    StyleSheet.absoluteFill,
+                    styles.cornerLeftBorder,
+                    { borderColor: palette.glassBorder },
+                  ]}
+                />
+                <Info size={18} color={palette.accent} strokeWidth={2} />
+              </Pressable>
+              <View style={styles.cornerRight}>
+                <AudioButton
+                  source={resolveAudio(currentDhikr.audioFilename)}
+                  dhikrId={currentDhikr.id}
+                />
+              </View>
             </Animated.View>
 
             <View
