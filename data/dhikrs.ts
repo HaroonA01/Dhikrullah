@@ -133,32 +133,6 @@ export const DHIKRS: Record<CategoryId, Dhikr[]> = {
       reference: ref(2),
     },
   ],
-  night: [
-    {
-      id: 'night-01',
-      arabic: 'بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا',
-      transliteration: 'Bismika Allahumma amutu wa ahya',
-      translation: 'In Your name O Allah, I die and I live',
-      target: 1,
-      reference: ref(0),
-    },
-    {
-      id: 'night-02',
-      arabic: 'سُبْحَانَ اللَّهِ',
-      transliteration: 'SubhanAllah',
-      translation: 'Glory be to Allah',
-      target: 33,
-      reference: ref(1),
-    },
-    {
-      id: 'night-03',
-      arabic: 'الْحَمْدُ لِلَّهِ',
-      transliteration: 'Alhamdulillah',
-      translation: 'All praise is due to Allah',
-      target: 33,
-      reference: ref(2),
-    },
-  ],
   fajr: [
     {
       id: 'fajr-01',

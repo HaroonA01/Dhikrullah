@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -38,6 +38,8 @@ import {
   Volume2,
 } from 'lucide-react-native';
 import Animated, {
+  cancelAnimation,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -49,6 +51,8 @@ import { SettingsSection } from '@/components/SettingsSection';
 import { SettingsRow } from '@/components/SettingsRow';
 import { ThemeSwatch } from '@/components/ThemeSwatch';
 import { CitySearchModal } from '@/components/CitySearchModal';
+import { EasterEggConfetti } from '@/components/EasterEggConfetti';
+import { EasterEggModal } from '@/components/EasterEggModal';
 import { useTheme, type Mode } from '@/context/ThemeContext';
 import { usePrefs, PRAYER_CATEGORY_IDS, type NotifOffset } from '@/context/PrefsContext';
 import { METHODS, type Madhab, type MethodId } from '@/lib/prayer';
@@ -146,6 +150,8 @@ export default function SettingsScreen() {
   const [arabicFontOpen, setArabicFontOpen] = useState(false);
   const [englishFontOpen, setEnglishFontOpen] = useState(false);
   const [soundPickerOpen, setSoundPickerOpen] = useState(false);
+  const [eggOpen, setEggOpen] = useState(false);
+  const [eggConfettiTick, setEggConfettiTick] = useState(0);
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const currentMethod = METHODS.find((m) => m.id === prayerMethodId) ?? METHODS[0];
@@ -490,7 +496,14 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         <SettingsSection title="About">
-          <SettingsRow label="Version" detail={version} Icon={Tag} />
+          <VersionEggRow
+            version={version}
+            palette={palette}
+            onActivate={() => {
+              setEggConfettiTick((t) => t + 1);
+              setTimeout(() => setEggOpen(true), 550);
+            }}
+          />
           <SettingsRow
             label="Contact"
             detail={SUPPORT_EMAIL}
@@ -587,9 +600,203 @@ export default function SettingsScreen() {
         onClose={() => setSoundPickerOpen(false)}
         palette={palette}
       />
+
+      <EasterEggModal
+        visible={eggOpen}
+        onClose={() => setEggOpen(false)}
+      />
+
+      <EasterEggConfetti
+        triggerKey={eggConfettiTick}
+        colors={[
+          palette.accent,
+          palette.bgTop,
+          palette.bgMid,
+          palette.bgBottom,
+          palette.textMid,
+        ]}
+      />
     </View>
   );
 }
+
+// ─── Version Easter-Egg Row ────────────────────────────────────────────────
+
+const TAP_RESET_MS = 1500;
+const ARMED_WINDOW_MS = 4000;
+const FILL_DURATION_MS = 1500;
+const REQUIRED_TAPS = 5;
+
+function VersionEggRow({
+  version,
+  palette,
+  onActivate,
+}: {
+  version: string;
+  palette: ReturnType<typeof useTheme>['palette'];
+  onActivate: () => void;
+}) {
+  const tapCountRef = useRef(0);
+  const armedRef = useRef(false);
+  const completedRef = useRef(false);
+  const tapResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const armedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fillProgress = useSharedValue(0);
+
+  useEffect(() => {
+    return () => {
+      if (tapResetTimerRef.current) clearTimeout(tapResetTimerRef.current);
+      if (armedTimerRef.current) clearTimeout(armedTimerRef.current);
+    };
+  }, []);
+
+  const disarm = useCallback(() => {
+    armedRef.current = false;
+    if (armedTimerRef.current) {
+      clearTimeout(armedTimerRef.current);
+      armedTimerRef.current = null;
+    }
+  }, []);
+
+  const handleComplete = useCallback(() => {
+    completedRef.current = true;
+    disarm();
+    fillProgress.value = withTiming(0, { duration: 250 });
+    onActivate();
+    setTimeout(() => {
+      completedRef.current = false;
+    }, 800);
+  }, [disarm, fillProgress, onActivate]);
+
+  const handlePress = useCallback(() => {
+    if (armedRef.current || completedRef.current) return;
+    tapCountRef.current += 1;
+    if (tapResetTimerRef.current) clearTimeout(tapResetTimerRef.current);
+    tapResetTimerRef.current = setTimeout(() => {
+      tapCountRef.current = 0;
+    }, TAP_RESET_MS);
+    if (tapCountRef.current >= REQUIRED_TAPS) {
+      tapCountRef.current = 0;
+      armedRef.current = true;
+      if (armedTimerRef.current) clearTimeout(armedTimerRef.current);
+      armedTimerRef.current = setTimeout(() => {
+        if (fillProgress.value === 0) disarm();
+      }, ARMED_WINDOW_MS);
+    }
+  }, [disarm, fillProgress]);
+
+  const handlePressIn = useCallback(() => {
+    if (!armedRef.current || completedRef.current) return;
+    fillProgress.value = 0;
+    fillProgress.value = withTiming(
+      1,
+      { duration: FILL_DURATION_MS },
+      (finished) => {
+        if (finished) runOnJS(handleComplete)();
+      },
+    );
+  }, [fillProgress, handleComplete]);
+
+  const handlePressOut = useCallback(() => {
+    if (completedRef.current) return;
+    if (!armedRef.current) return;
+    if (fillProgress.value >= 1) return;
+    cancelAnimation(fillProgress);
+    fillProgress.value = withTiming(0, { duration: 220 });
+  }, [fillProgress]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    opacity: fillProgress.value === 0 ? 0 : 0.85,
+    transform: [{ scale: fillProgress.value }],
+  }));
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onLongPress={() => {}}
+      delayLongPress={400}
+      style={({ pressed }) => [
+        versionEggStyles.row,
+        {
+          borderBottomColor: palette.glassBorder,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+        },
+        pressed && { opacity: 0.92 },
+      ]}
+    >
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          versionEggStyles.fillCircle,
+          { backgroundColor: palette.accent },
+          fillStyle,
+        ]}
+      />
+      <View
+        style={[
+          versionEggStyles.iconTile,
+          { backgroundColor: palette.accentLight },
+        ]}
+      >
+        <Tag size={16} color={palette.accent} strokeWidth={2} />
+      </View>
+      <View style={versionEggStyles.left}>
+        <Text style={[versionEggStyles.label, { color: palette.textDark }]}>
+          Version
+        </Text>
+        <Text
+          style={[versionEggStyles.detail, { color: palette.textMid }]}
+          numberOfLines={1}
+        >
+          {version}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+const versionEggStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    minHeight: 52,
+    gap: 12,
+    overflow: 'hidden',
+  },
+  fillCircle: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    width: 520,
+    height: 520,
+    marginLeft: -260,
+    marginTop: -260,
+    borderRadius: 260,
+  },
+  iconTile: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  left: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  detail: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+});
 
 // ─── Time Picker Modal ─────────────────────────────────────────────────────
 
@@ -1080,7 +1287,7 @@ function SoundPickerModal({ visible, currentId, onSelect, onClose, palette }: So
     previewRef.current = sound;
   };
 
-  const SOUND_IDS: NotifSoundId[] = ['default', 'chime', 'bell', 'adhan', 'none'];
+  const SOUND_IDS: NotifSoundId[] = ['default', 'chime', 'bell', 'harp', 'glow', 'tap', 'none'];
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>

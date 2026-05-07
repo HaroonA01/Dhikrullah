@@ -127,10 +127,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setMeta(KEY_ACTIVE_SPECIAL, id ?? '').catch(() => {});
   }, []);
 
-  const activeSpecialTheme = useMemo<SpecialTheme | null>(
-    () => (activeSpecialId ? (getSpecialTheme(activeSpecialId) ?? null) : null),
-    [activeSpecialId],
-  );
+  const activeSpecialTheme = useMemo<SpecialTheme | null>(() => {
+    if (!activeSpecialId) return null;
+    const theme = getSpecialTheme(activeSpecialId) ?? null;
+    if (!theme?.paletteVariants?.length) return theme;
+    const variant = theme.paletteVariants[Math.floor(Math.random() * theme.paletteVariants.length)];
+    return {
+      ...theme,
+      palette: variant.palette,
+      lightPalette: variant.lightPalette,
+      darkPalette: variant.darkPalette,
+    };
+  }, [activeSpecialId]);
 
   const visibleSpecialThemes = useMemo<SpecialTheme[]>(
     () => SPECIAL_THEMES.filter(

@@ -446,12 +446,19 @@ export interface SpecialPalette {
   gradientLocations: number[];
 }
 
+export interface PaletteVariant {
+  palette: SpecialPalette;
+  lightPalette?: SpecialPalette;
+  darkPalette?: SpecialPalette;
+}
+
 export interface SpecialTheme {
   id: string;
   name: string;
   palette: SpecialPalette;
   lightPalette?: SpecialPalette;
   darkPalette?: SpecialPalette;
+  paletteVariants?: PaletteVariant[];
   hasStars?: boolean;
   hasHearts?: boolean;
   hasInfinity?: boolean;
@@ -485,7 +492,7 @@ export const SPECIAL_THEMES: SpecialTheme[] = [
   },
   {
     id: 'laylat-arabia',
-    name: 'Laylat Arabia',
+    name: 'Laylatun Arabia',
     hasStars: true,
     palette: {
       // Test4 colours — cobalt → royal blue → deep indigo → purple: blue-dominant, regal
@@ -529,10 +536,12 @@ export const SPECIAL_THEMES: SpecialTheme[] = [
     },
   },
 
-  // ─── Always & Forever test variants (debug) ───────────────────────────────
+  // ─── Always & Forever (single unlockable theme, random variant per session) ──
   {
-    id: 'always-forever-t1', name: 'Always & Forever',
-    hasInfinity: true, swatchIcon: 'infinity', debug: true,
+    id: 'always-forever',
+    name: 'Always & Forever',
+    hasInfinity: true,
+    swatchIcon: 'infinity',
     palette: {
       accent: '#90A8F0', accentLight: 'rgba(144,168,240,0.15)',
       glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(144,168,240,0.20)',
@@ -540,181 +549,176 @@ export const SPECIAL_THEMES: SpecialTheme[] = [
       gradientColors: ['#040A1C', '#080F2E', '#0C1540', '#060C28'],
       gradientLocations: [0, 0.30, 0.70, 1.0],
     },
-    lightPalette: {
-      accent: '#3050C0', accentLight: 'rgba(48,80,192,0.12)',
-      glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
-      textDark: '#0A1030', textMid: '#3050A0', textDim: '#8090C0',
-      gradientColors: ['#F0F4FF', '#E4EAFF', '#D4DCFF'],
-      gradientLocations: [0, 0.55, 1.0],
-    },
-    darkPalette: {
-      accent: '#90A8F0', accentLight: 'rgba(144,168,240,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(144,168,240,0.20)',
-      textDark: '#E8EEFF', textMid: '#A0B0E8', textDim: '#607098',
-      gradientColors: ['#040A1C', '#080F2E', '#0C1540', '#060C28'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
-  },
-  {
-    id: 'always-forever-t2', name: 'Always & Forever',
-    hasInfinity: true, swatchIcon: 'infinity', debug: true,
-    palette: {
-      accent: '#F0C040', accentLight: 'rgba(240,192,64,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(240,192,64,0.20)',
-      textDark: '#FFF8E0', textMid: '#C8A858', textDim: '#786840',
-      gradientColors: ['#1A1000', '#302000', '#482E00', '#280E00'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
-    lightPalette: {
-      accent: '#A06800', accentLight: 'rgba(160,104,0,0.12)',
-      glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
-      textDark: '#201000', textMid: '#705000', textDim: '#B09050',
-      gradientColors: ['#FFFDF5', '#FFF5D8', '#FFEDB0'],
-      gradientLocations: [0, 0.55, 1.0],
-    },
-    darkPalette: {
-      accent: '#F0C040', accentLight: 'rgba(240,192,64,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(240,192,64,0.20)',
-      textDark: '#FFF8E0', textMid: '#C8A858', textDim: '#786840',
-      gradientColors: ['#1A1000', '#302000', '#482E00', '#280E00'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
-  },
-  {
-    id: 'always-forever-t3', name: 'Always & Forever',
-    hasInfinity: true, swatchIcon: 'infinity', debug: true,
-    palette: {
-      accent: '#C880F8', accentLight: 'rgba(200,128,248,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(200,128,248,0.20)',
-      textDark: '#F4E8FF', textMid: '#C0A0E0', textDim: '#806890',
-      gradientColors: ['#0C0018', '#1A0030', '#260040', '#140020'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
-    lightPalette: {
-      accent: '#8040C0', accentLight: 'rgba(128,64,192,0.12)',
-      glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
-      textDark: '#140820', textMid: '#603890', textDim: '#A08AB0',
-      gradientColors: ['#FEF8FF', '#F8EEFF', '#F0E0FF'],
-      gradientLocations: [0, 0.55, 1.0],
-    },
-    darkPalette: {
-      accent: '#C880F8', accentLight: 'rgba(200,128,248,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(200,128,248,0.20)',
-      textDark: '#F4E8FF', textMid: '#C0A0E0', textDim: '#806890',
-      gradientColors: ['#0C0018', '#1A0030', '#260040', '#140020'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
-  },
-  {
-    id: 'always-forever-t4', name: 'Always & Forever',
-    hasInfinity: true, swatchIcon: 'infinity', debug: true,
-    palette: {
-      accent: '#40D8C0', accentLight: 'rgba(64,216,192,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(64,216,192,0.20)',
-      textDark: '#E0FDF8', textMid: '#90C8C0', textDim: '#508080',
-      gradientColors: ['#001412', '#002220', '#003030', '#001C1A'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
-    lightPalette: {
-      accent: '#006858', accentLight: 'rgba(0,104,88,0.12)',
-      glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
-      textDark: '#001A18', textMid: '#306860', textDim: '#80A8A0',
-      gradientColors: ['#F0FFFD', '#D8F8F4', '#B8F0EA'],
-      gradientLocations: [0, 0.55, 1.0],
-    },
-    darkPalette: {
-      accent: '#40D8C0', accentLight: 'rgba(64,216,192,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(64,216,192,0.20)',
-      textDark: '#E0FDF8', textMid: '#90C8C0', textDim: '#508080',
-      gradientColors: ['#001412', '#002220', '#003030', '#001C1A'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
-  },
-  {
-    id: 'always-forever-t5', name: 'Always & Forever',
-    hasInfinity: true, swatchIcon: 'infinity', debug: true,
-    palette: {
-      accent: '#C040F0', accentLight: 'rgba(192,64,240,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(192,64,240,0.18)',
-      textDark: '#F0E8FF', textMid: '#C0A0E8', textDim: '#706090',
-      gradientColors: ['#020208', '#050514', '#0A0820', '#030310'],
-      gradientLocations: [0, 0.25, 0.70, 1.0],
-    },
-  },
-  {
-    id: 'always-forever-t6', name: 'Always & Forever',
-    hasInfinity: true, swatchIcon: 'infinity', debug: true,
-    palette: {
-      accent: '#40D880', accentLight: 'rgba(64,216,128,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(64,216,128,0.20)',
-      textDark: '#E0FFF0', textMid: '#90C8A8', textDim: '#508868',
-      gradientColors: ['#001408', '#002010', '#00301A', '#001A0C'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
-    lightPalette: {
-      accent: '#0A6840', accentLight: 'rgba(10,104,64,0.12)',
-      glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
-      textDark: '#001810', textMid: '#286848', textDim: '#78A890',
-      gradientColors: ['#F0FFF5', '#D8F8E8', '#B8EED8'],
-      gradientLocations: [0, 0.55, 1.0],
-    },
-    darkPalette: {
-      accent: '#40D880', accentLight: 'rgba(64,216,128,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(64,216,128,0.20)',
-      textDark: '#E0FFF0', textMid: '#90C8A8', textDim: '#508868',
-      gradientColors: ['#001408', '#002010', '#00301A', '#001A0C'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
-  },
-  {
-    id: 'always-forever-t7', name: 'Always & Forever',
-    hasInfinity: true, swatchIcon: 'infinity', debug: true,
-    palette: {
-      accent: '#80C8F0', accentLight: 'rgba(128,200,240,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(128,200,240,0.20)',
-      textDark: '#EAF6FF', textMid: '#98C0E0', textDim: '#507890',
-      gradientColors: ['#020810', '#040C18', '#061220', '#030910'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
-    lightPalette: {
-      accent: '#2878B8', accentLight: 'rgba(40,120,184,0.12)',
-      glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
-      textDark: '#08182A', textMid: '#3868A0', textDim: '#88A8C8',
-      gradientColors: ['#FAFEFF', '#EEF9FF', '#E0F4FF'],
-      gradientLocations: [0, 0.55, 1.0],
-    },
-    darkPalette: {
-      accent: '#80C8F0', accentLight: 'rgba(128,200,240,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(128,200,240,0.20)',
-      textDark: '#EAF6FF', textMid: '#98C0E0', textDim: '#507890',
-      gradientColors: ['#020810', '#040C18', '#061220', '#030910'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
-  },
-  {
-    id: 'always-forever-t8', name: 'Always & Forever',
-    hasInfinity: true, swatchIcon: 'infinity', debug: true,
-    palette: {
-      accent: '#D080FF', accentLight: 'rgba(208,128,255,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(208,128,255,0.20)',
-      textDark: '#F4EEFF', textMid: '#C098E8', textDim: '#806898',
-      gradientColors: ['#0C0018', '#160028', '#200038', '#100020'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
-    lightPalette: {
-      accent: '#6828B8', accentLight: 'rgba(104,40,184,0.12)',
-      glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
-      textDark: '#140820', textMid: '#503080', textDim: '#9878B8',
-      gradientColors: ['#FAF5FF', '#F2E8FF', '#E8D8FF'],
-      gradientLocations: [0, 0.55, 1.0],
-    },
-    darkPalette: {
-      accent: '#D080FF', accentLight: 'rgba(208,128,255,0.15)',
-      glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(208,128,255,0.20)',
-      textDark: '#F4EEFF', textMid: '#C098E8', textDim: '#806898',
-      gradientColors: ['#0C0018', '#160028', '#200038', '#100020'],
-      gradientLocations: [0, 0.30, 0.70, 1.0],
-    },
+    paletteVariants: [
+      // 1 — cosmic blue
+      {
+        palette: {
+          accent: '#90A8F0', accentLight: 'rgba(144,168,240,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(144,168,240,0.20)',
+          textDark: '#E8EEFF', textMid: '#A0B0E8', textDim: '#607098',
+          gradientColors: ['#040A1C', '#080F2E', '#0C1540', '#060C28'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+        lightPalette: {
+          accent: '#3050C0', accentLight: 'rgba(48,80,192,0.12)',
+          glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
+          textDark: '#0A1030', textMid: '#3050A0', textDim: '#8090C0',
+          gradientColors: ['#F0F4FF', '#E4EAFF', '#D4DCFF'],
+          gradientLocations: [0, 0.55, 1.0],
+        },
+        darkPalette: {
+          accent: '#90A8F0', accentLight: 'rgba(144,168,240,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(144,168,240,0.20)',
+          textDark: '#E8EEFF', textMid: '#A0B0E8', textDim: '#607098',
+          gradientColors: ['#040A1C', '#080F2E', '#0C1540', '#060C28'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+      },
+      // 2 — amber gold
+      {
+        palette: {
+          accent: '#F0C040', accentLight: 'rgba(240,192,64,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(240,192,64,0.20)',
+          textDark: '#FFF8E0', textMid: '#C8A858', textDim: '#786840',
+          gradientColors: ['#1A1000', '#302000', '#482E00', '#280E00'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+        lightPalette: {
+          accent: '#A06800', accentLight: 'rgba(160,104,0,0.12)',
+          glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
+          textDark: '#201000', textMid: '#705000', textDim: '#B09050',
+          gradientColors: ['#FFFDF5', '#FFF5D8', '#FFEDB0'],
+          gradientLocations: [0, 0.55, 1.0],
+        },
+        darkPalette: {
+          accent: '#F0C040', accentLight: 'rgba(240,192,64,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(240,192,64,0.20)',
+          textDark: '#FFF8E0', textMid: '#C8A858', textDim: '#786840',
+          gradientColors: ['#1A1000', '#302000', '#482E00', '#280E00'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+      },
+      // 3 — violet
+      {
+        palette: {
+          accent: '#C880F8', accentLight: 'rgba(200,128,248,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(200,128,248,0.20)',
+          textDark: '#F4E8FF', textMid: '#C0A0E0', textDim: '#806890',
+          gradientColors: ['#0C0018', '#1A0030', '#260040', '#140020'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+        lightPalette: {
+          accent: '#8040C0', accentLight: 'rgba(128,64,192,0.12)',
+          glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
+          textDark: '#140820', textMid: '#603890', textDim: '#A08AB0',
+          gradientColors: ['#FEF8FF', '#F8EEFF', '#F0E0FF'],
+          gradientLocations: [0, 0.55, 1.0],
+        },
+        darkPalette: {
+          accent: '#C880F8', accentLight: 'rgba(200,128,248,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(200,128,248,0.20)',
+          textDark: '#F4E8FF', textMid: '#C0A0E0', textDim: '#806890',
+          gradientColors: ['#0C0018', '#1A0030', '#260040', '#140020'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+      },
+      // 4 — teal
+      {
+        palette: {
+          accent: '#40D8C0', accentLight: 'rgba(64,216,192,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(64,216,192,0.20)',
+          textDark: '#E0FDF8', textMid: '#90C8C0', textDim: '#508080',
+          gradientColors: ['#001412', '#002220', '#003030', '#001C1A'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+        lightPalette: {
+          accent: '#006858', accentLight: 'rgba(0,104,88,0.12)',
+          glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
+          textDark: '#001A18', textMid: '#306860', textDim: '#80A8A0',
+          gradientColors: ['#F0FFFD', '#D8F8F4', '#B8F0EA'],
+          gradientLocations: [0, 0.55, 1.0],
+        },
+        darkPalette: {
+          accent: '#40D8C0', accentLight: 'rgba(64,216,192,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(64,216,192,0.20)',
+          textDark: '#E0FDF8', textMid: '#90C8C0', textDim: '#508080',
+          gradientColors: ['#001412', '#002220', '#003030', '#001C1A'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+      },
+      // 5 — emerald
+      {
+        palette: {
+          accent: '#40D880', accentLight: 'rgba(64,216,128,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(64,216,128,0.20)',
+          textDark: '#E0FFF0', textMid: '#90C8A8', textDim: '#508868',
+          gradientColors: ['#001408', '#002010', '#00301A', '#001A0C'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+        lightPalette: {
+          accent: '#0A6840', accentLight: 'rgba(10,104,64,0.12)',
+          glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
+          textDark: '#001810', textMid: '#286848', textDim: '#78A890',
+          gradientColors: ['#F0FFF5', '#D8F8E8', '#B8EED8'],
+          gradientLocations: [0, 0.55, 1.0],
+        },
+        darkPalette: {
+          accent: '#40D880', accentLight: 'rgba(64,216,128,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(64,216,128,0.20)',
+          textDark: '#E0FFF0', textMid: '#90C8A8', textDim: '#508868',
+          gradientColors: ['#001408', '#002010', '#00301A', '#001A0C'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+      },
+      // 7 — sky blue
+      {
+        palette: {
+          accent: '#80C8F0', accentLight: 'rgba(128,200,240,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(128,200,240,0.20)',
+          textDark: '#EAF6FF', textMid: '#98C0E0', textDim: '#507890',
+          gradientColors: ['#020810', '#040C18', '#061220', '#030910'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+        lightPalette: {
+          accent: '#2878B8', accentLight: 'rgba(40,120,184,0.12)',
+          glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
+          textDark: '#08182A', textMid: '#3868A0', textDim: '#88A8C8',
+          gradientColors: ['#FAFEFF', '#EEF9FF', '#E0F4FF'],
+          gradientLocations: [0, 0.55, 1.0],
+        },
+        darkPalette: {
+          accent: '#80C8F0', accentLight: 'rgba(128,200,240,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(128,200,240,0.20)',
+          textDark: '#EAF6FF', textMid: '#98C0E0', textDim: '#507890',
+          gradientColors: ['#020810', '#040C18', '#061220', '#030910'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+      },
+      // 8 — purple
+      {
+        palette: {
+          accent: '#D080FF', accentLight: 'rgba(208,128,255,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(208,128,255,0.20)',
+          textDark: '#F4EEFF', textMid: '#C098E8', textDim: '#806898',
+          gradientColors: ['#0C0018', '#160028', '#200038', '#100020'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+        lightPalette: {
+          accent: '#6828B8', accentLight: 'rgba(104,40,184,0.12)',
+          glassBg: 'rgba(255,255,255,0.60)', glassBorder: 'rgba(255,255,255,0.85)',
+          textDark: '#140820', textMid: '#503080', textDim: '#9878B8',
+          gradientColors: ['#FAF5FF', '#F2E8FF', '#E8D8FF'],
+          gradientLocations: [0, 0.55, 1.0],
+        },
+        darkPalette: {
+          accent: '#D080FF', accentLight: 'rgba(208,128,255,0.15)',
+          glassBg: 'rgba(255,255,255,0.06)', glassBorder: 'rgba(208,128,255,0.20)',
+          textDark: '#F4EEFF', textMid: '#C098E8', textDim: '#806898',
+          gradientColors: ['#0C0018', '#160028', '#200038', '#100020'],
+          gradientLocations: [0, 0.30, 0.70, 1.0],
+        },
+      },
+    ],
   },
 ];
 

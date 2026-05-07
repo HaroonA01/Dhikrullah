@@ -90,12 +90,6 @@ const CATEGORY_MESSAGES: Record<CategoryId, Array<{ title: string; body: string 
     { title: 'Time for Witr Dhikr', body: 'The last act before sleep — make it a good one' },
     { title: 'Witr Dhikr', body: 'Seal your night with supplication and dhikr' },
   ],
-  night: [
-    { title: 'Time for Night Dhikr', body: 'The night is for reflection and remembrance' },
-    { title: 'Night Dhikr Reminder', body: 'Night adhkar protect you while you sleep' },
-    { title: 'Time for Night Dhikr', body: 'A believer remembers Allah before closing their eyes' },
-    { title: 'Night Dhikr', body: 'Quiet the world around you with the dhikr of Allah' },
-  ],
   before_bed: [
     { title: 'Time for Bedtime Dhikr', body: 'Sleep with the name of Allah on your lips' },
     { title: 'Bedtime Du\'a Reminder', body: 'The Prophet ﷺ never slept without his bedtime adhkar' },

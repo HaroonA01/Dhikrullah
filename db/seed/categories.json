@@ -9,6 +9,5 @@
   { "id": "maghrib", "label": "Maghrib", "sortOrder": 7 },
   { "id": "isha", "label": "Isha", "sortOrder": 8 },
   { "id": "witr", "label": "Witr", "sortOrder": 9 },
-  { "id": "night", "label": "Night", "sortOrder": 10 },
-  { "id": "before_bed", "label": "Before Bed", "sortOrder": 11 }
+  { "id": "before_bed", "label": "Before Bed", "sortOrder": 10 }
 ]

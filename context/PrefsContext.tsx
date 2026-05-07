@@ -54,7 +54,6 @@ const DEFAULT_NOTIF_ENABLED: Record<CategoryId, boolean> = {
   maghrib: false,
   isha: false,
   witr: false,
-  night: false,
   before_bed: false,
 };
 
@@ -116,7 +115,7 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [notifOffset, setNO] = useState<Partial<Record<CategoryId, NotifOffset>>>(DEFAULT_NOTIF_OFFSET);
   const [arabicFont, setAF] = useState<ArabicFontId>('system');
   const [englishFont, setEF] = useState<EnglishFontId>('system');
-  const [textSize, setTS] = useState<TextSizeId>('md');
+  const [textSize, setTS] = useState<TextSizeId>('sm');
   const [notifSound, setNS] = useState<NotifSoundId>('default');
 
   useEffect(() => {
@@ -172,10 +171,10 @@ export const PrefsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (no) {
           try { setNO({ ...DEFAULT_NOTIF_OFFSET, ...JSON.parse(no) }); } catch {}
         }
-        if (af === 'amiri' || af === 'scheherazade' || af === 'noto-naskh' || af === 'cairo' || af === 'tajawal' || af === 'lateef') setAF(af);
+        if (af === 'uthmani' || af === 'amiri' || af === 'scheherazade' || af === 'noto-naskh' || af === 'cairo' || af === 'tajawal' || af === 'lateef') setAF(af);
         if (ef === 'lato' || ef === 'merriweather' || ef === 'nunito' || ef === 'poppins' || ef === 'playfair' || ef === 'raleway') setEF(ef);
         if (ts === 'sm' || ts === 'lg' || ts === 'xl') setTS(ts);
-        if (ns === 'chime' || ns === 'bell' || ns === 'adhan' || ns === 'none') setNS(ns);
+        if (ns === 'chime' || ns === 'bell' || ns === 'harp' || ns === 'glow' || ns === 'tap' || ns === 'none') setNS(ns);
         setHydrated(true);
       } catch {
         if (cancelled || attempts >= 20) {

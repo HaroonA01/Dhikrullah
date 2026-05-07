@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import {
   Sun,
   Sunset,
-  Moon,
   Sunrise,
   Clock,
   Hourglass,
@@ -24,7 +23,6 @@ const SUBTITLES: Record<CategoryId, string> = {
   waking_up: 'Upon awakening',
   morning: 'After Fajr prayer',
   evening: 'After Asr prayer',
-  night: 'Before sleep',
   fajr: 'Dawn prayer',
   dhuhr: 'Midday prayer',
   asr: 'Afternoon prayer',
@@ -42,7 +40,6 @@ const ICONS: Record<
   waking_up: Coffee,
   morning: Sun,
   evening: Sunset,
-  night: Moon,
   fajr: Sunrise,
   dhuhr: Clock,
   asr: Hourglass,

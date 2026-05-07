@@ -15,6 +15,18 @@
         {
           "locationWhenInUsePermission": "Dhikrullah uses your location to calculate accurate prayer times."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/chime.wav",
+            "./assets/sounds/bell.wav",
+            "./assets/sounds/harp.wav",
+            "./assets/sounds/glow.wav",
+            "./assets/sounds/tap.wav"
+          ]
+        }
       ]
     ],
     "splash": {
