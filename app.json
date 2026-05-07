@@ -36,8 +36,11 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.haroonaftab.dhikrullah",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Dhikrullah uses your location to calculate accurate prayer times."
+        "NSLocationWhenInUseUsageDescription": "Dhikrullah uses your location to calculate accurate prayer times.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -48,14 +51,20 @@
       "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
-      "package": "com.anonymous.dhikrullah"
+      "package": "com.haroonaftab.dhikrullah",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f8997864-e57e-43aa-9d47-b67e7827755e"
+      },
+      "router": {}
+    },
+    "owner": "haroona01"
   }
 }
