@@ -1,9 +1,10 @@
-export type ArabicFontId = 'system' | 'amiri' | 'scheherazade' | 'noto-naskh' | 'cairo' | 'tajawal' | 'lateef';
+export type ArabicFontId = 'system' | 'uthmani' | 'amiri' | 'scheherazade' | 'noto-naskh' | 'cairo' | 'tajawal' | 'lateef';
 export type EnglishFontId = 'system' | 'lato' | 'merriweather' | 'nunito' | 'poppins' | 'playfair' | 'raleway';
 export type TextSizeId = 'sm' | 'md' | 'lg' | 'xl';
 
 export const ARABIC_FONTS = [
   { id: 'system', label: 'System', fontFamily: null },
+  { id: 'uthmani', label: 'Uthmani Script', fontFamily: 'KFGQPCUthmanicScriptHAFS' },
   { id: 'amiri', label: 'Amiri', fontFamily: 'Amiri_400Regular' },
   { id: 'scheherazade', label: 'Scheherazade New', fontFamily: 'ScheherazadeNew_400Regular' },
   { id: 'noto-naskh', label: 'Noto Naskh', fontFamily: 'NotoNaskhArabic_400Regular' },
@@ -34,6 +35,7 @@ export const TRANSLIT_SIZE: Record<TextSizeId, number> = { sm: 20, md: 25, lg: 3
 export const TRANSLATION_SIZE: Record<TextSizeId, number> = { sm: 19, md: 24, lg: 29, xl: 36 };
 
 export const GOOGLE_FONT_ASSETS = {
+  KFGQPCUthmanicScriptHAFS: require('@/assets/fonts/KFGQPCUthmanicScriptHAFS.otf'),
   Amiri_400Regular: require('@expo-google-fonts/amiri/400Regular/Amiri_400Regular.ttf'),
   ScheherazadeNew_400Regular: require('@expo-google-fonts/scheherazade-new/400Regular/ScheherazadeNew_400Regular.ttf'),
   NotoNaskhArabic_400Regular: require('@expo-google-fonts/noto-naskh-arabic/400Regular/NotoNaskhArabic_400Regular.ttf'),

@@ -354,9 +354,9 @@ function EasterEggModal({ visible, onClose, onSuccess }: EggModalProps) {
     const trimmed = code.trim();
     let matched: string | null = null;
     if (trimmed.toLowerCase() === 'arabian night') matched = 'arabian-night';
-    else if (trimmed === 'ليلة العربيا') matched = 'laylat-arabia';
+    else if (trimmed === 'ليلة العربيا' || trimmed.toLowerCase() === 'laylatun arabia') matched = 'laylat-arabia';
     else if (trimmed.toLowerCase() === 'fifty six') matched = 'fifty-six';
-    else if (trimmed.toLowerCase() === 'i love you always and forever') matched = 'always-forever-t1';
+    else if (trimmed.toLowerCase() === 'i love you always and forever') matched = 'always-forever';
 
     if (matched) {
       setSuccessId(matched);

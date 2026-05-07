@@ -272,7 +272,6 @@ export const computeCategoryWindows = (
     maghrib: makeWindow(times.maghrib, times.isha),
     isha: makeWindow(times.isha, ishaToFajrMid),
     witr: makeWindow(times.isha, ishaToFajrMid),
-    night: makeWindow(times.isha, tomorrowFajr),
     before_bed: makeWindow(beforeBedStart, addMinutes(beforeBedStart, 60)),
   };
 };

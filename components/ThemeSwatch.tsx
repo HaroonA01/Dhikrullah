@@ -64,7 +64,9 @@ export function ThemeSwatch(props: Props) {
     // ── Heart icon (Fifty Six) ───────────────────────────────────────────────
     if (theme.swatchIcon === 'heart-split' && theme.lightPalette) {
       const lp = theme.lightPalette;
-      const hp = heartPath(size);
+      const heartScale = 0.62;
+      const heartOff = (size * (1 - heartScale)) / 2;
+      const hp = heartPath(size * heartScale);
       const outerClip = `hs-outer-${id}`;
       const bgGrad    = `hs-bg-${id}`;
       return (
@@ -85,7 +87,9 @@ export function ThemeSwatch(props: Props) {
             </Defs>
             <G clipPath={`url(#${outerClip})`}>
               <Rect x={0} y={0} width={size} height={size} fill={`url(#${bgGrad})`} />
-              <Path d={hp} fill={lp.accent} />
+              <G transform={`translate(${heartOff}, ${heartOff})`}>
+                <Path d={hp} fill={lp.accent} />
+              </G>
             </G>
             <Circle cx={r} cy={r} r={r - ringWidth / 2} fill="none" stroke={GOLD} strokeWidth={ringWidth} />
           </Svg>
